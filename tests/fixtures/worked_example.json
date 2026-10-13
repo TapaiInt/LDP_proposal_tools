@@ -1,0 +1,160 @@
+{
+  "status": "estimate_complete",
+  "request_type": "new",
+  "lead_ref": "EXAMPLE-CORP-WEBSITE",
+  "version": "1.0",
+  "output_mode": "json_only",
+  "confidence": { "overall": "medium", "reason": "Page count and CMS choice are stated; content volume and hosting ownership are assumed." },
+  "understanding": {
+    "objectives": ["Replace the outdated brochure site with a mobile-friendly site the marketing team can edit", "Capture enquiries online"],
+    "user_roles": ["Visitor", "Marketing Editor"],
+    "scope_summary": "Informational website of about 8 pages on a CMS, one enquiry form, basic SEO and analytics setup, go-live on client-provided hosting.",
+    "project_type": "marketing website",
+    "closest_reference": "marketing website"
+  },
+  "answered_questions": [
+    { "id": "Q1", "answer": "Client provides hosting and domain access before build starts.", "effect_on_estimate": "No cloud provisioning tasks; deployment task only." }
+  ],
+  "gaps_assumed": [
+    { "gap": "Number of blog/news posts to migrate", "assumption": "No content migration; client enters content through the CMS.", "effort_swing": "+30–60 h if migration is added" }
+  ],
+  "requirement_items": [
+    { "id": "R1", "kind": "functional", "ref": "Scope — Site map: Home, About, Services, Contact", "text": "Home, About, Services and Contact pages", "coverage": "covered", "task_ids": ["T1", "T2", "T4"], "note": null },
+    { "id": "R2", "kind": "functional", "ref": "Scope — Information architecture", "text": "Navigation and page hierarchy agreed before design", "coverage": "covered", "task_ids": ["T1"], "note": null },
+    { "id": "R3", "kind": "nfr", "ref": "Scope — Responsive design", "text": "Responsive on current desktop, tablet and mobile browsers", "coverage": "covered", "task_ids": ["T2", "T3", "T4"], "note": null },
+    { "id": "R4", "kind": "functional", "ref": "Scope — CMS", "text": "Marketing team can edit page content without a developer", "coverage": "covered", "task_ids": ["T3", "T4"], "note": null },
+    { "id": "R5", "kind": "functional", "ref": "Scope — Enquiry form", "text": "One enquiry form emailing the sales inbox", "coverage": "covered", "task_ids": ["T5"], "note": null },
+    { "id": "R6", "kind": "functional", "ref": "Scope — SEO and analytics", "text": "On-page SEO basics, analytics and search console configured", "coverage": "covered", "task_ids": ["T6"], "note": null },
+    { "id": "R7", "kind": "deliverable", "ref": "Scope — Go-live", "text": "Deployment to client hosting with SSL", "coverage": "covered", "task_ids": ["T7"], "note": null },
+    { "id": "R8", "kind": "exclusion", "ref": "Exclusions — E-commerce", "text": "No online sales or payment integration", "coverage": "excluded", "task_ids": [], "note": null },
+    { "id": "R9", "kind": "exclusion", "ref": "Exclusions — Content", "text": "Content writing and photography provided by the client", "coverage": "excluded", "task_ids": [], "note": null }
+  ],
+  "modules": [
+    {
+      "module": "Discovery & Design",
+      "description": "Information architecture and visual design of the page templates.",
+      "roles_served": ["Visitor", "Marketing Editor"],
+      "confidence": "medium",
+      "calibration_ref": "marketing website",
+      "tasks": [
+        { "id": "T1", "title": "Information architecture and requirement sign-off", "delivers": "Site map, navigation model, page inventory and content checklist agreed with the client.",
+          "type": "Discovery / Requirement Analysis", "role": "Business Analyst", "phase": "Discovery & Design", "origin": "requirement", "req_ids": ["R1", "R2"],
+          "optimistic_h": 18.0, "most_likely_h": 30.0, "pessimistic_h": 46.0, "outside_overhead_pct": false, "notes": "Two workshops plus written sign-off." },
+        { "id": "T2", "title": "UI/UX design of page templates", "delivers": "Responsive wireframes and visual design for the home page and three inner-page templates, one revision round.",
+          "type": "UI/UX", "role": "UI/UX Designer", "phase": "Discovery & Design", "origin": "requirement", "req_ids": ["R1", "R3"],
+          "optimistic_h": 22.0, "most_likely_h": 38.0, "pessimistic_h": 56.0, "outside_overhead_pct": false, "notes": "Brand guidelines assumed available." }
+      ]
+    },
+    {
+      "module": "Site Build",
+      "description": "CMS setup, templates, enquiry form, SEO and analytics.",
+      "roles_served": ["Visitor", "Marketing Editor"],
+      "confidence": "medium",
+      "calibration_ref": "marketing website",
+      "tasks": [
+        { "id": "T3", "title": "CMS setup and theme foundation", "delivers": "CMS installed and configured, base theme, editable menus, roles for the editor, media library setup.",
+          "type": "Frontend", "role": "Frontend Developer", "phase": "Build", "origin": "requirement", "req_ids": ["R3", "R4"],
+          "optimistic_h": 21.0, "most_likely_h": 36.0, "pessimistic_h": 54.0, "outside_overhead_pct": false, "notes": "" },
+        { "id": "T4", "title": "Page templates and responsive build", "delivers": "Home page and three inner-page templates built to design, editable blocks, cross-browser and responsive checks on the agreed browser list.",
+          "type": "Frontend", "role": "Frontend Developer", "phase": "Build", "origin": "requirement", "req_ids": ["R1", "R3", "R4"],
+          "optimistic_h": 24.0, "most_likely_h": 40.0, "pessimistic_h": 60.0, "outside_overhead_pct": false, "notes": "Kept whole: template and editable-block logic are coupled." },
+        { "id": "T5", "title": "Enquiry form with email routing", "delivers": "One validated enquiry form with spam protection, stored submissions and email to the sales inbox.",
+          "type": "Backend", "role": "Backend Developer", "phase": "Build", "origin": "requirement", "req_ids": ["R5"],
+          "optimistic_h": 14.0, "most_likely_h": 24.0, "pessimistic_h": 36.0, "outside_overhead_pct": false, "notes": "" },
+        { "id": "T6", "title": "SEO basics and analytics setup", "delivers": "Page titles and metadata, XML sitemap, redirects list, analytics and search console configured.",
+          "type": "Third-party Integration", "role": "Backend Developer", "phase": "Build", "origin": "requirement", "req_ids": ["R6"],
+          "optimistic_h": 13.0, "most_likely_h": 22.0, "pessimistic_h": 33.0, "outside_overhead_pct": false, "notes": "" }
+      ]
+    },
+    {
+      "module": "Release",
+      "description": "Environments and go-live.",
+      "roles_served": ["Marketing Editor"],
+      "confidence": "high",
+      "calibration_ref": "marketing website",
+      "tasks": [
+        { "id": "T7", "title": "Deployment, SSL and go-live", "delivers": "Production deployment on client hosting, SSL, DNS cut-over support, post-launch smoke checks.",
+          "type": "DevOps", "role": "DevOps Engineer", "phase": "Build", "origin": "requirement", "req_ids": ["R7"],
+          "optimistic_h": 13.0, "most_likely_h": 22.0, "pessimistic_h": 33.0, "outside_overhead_pct": false, "notes": "" },
+        { "id": "T8", "title": "Development and staging environments with version control", "delivers": "Repository, staging site and a repeatable deployment routine.",
+          "type": "DevOps", "role": "DevOps Engineer", "phase": "Build", "origin": "inferred_necessary", "req_ids": [],
+          "optimistic_h": 12.0, "most_likely_h": 20.0, "pessimistic_h": 30.0, "outside_overhead_pct": false, "notes": "Not stated; needed to review and release the build safely." }
+      ]
+    }
+  ],
+  "tech_stack": [
+    { "layer": "CMS and frontend", "proposed": "WordPress with a custom theme", "alternative": "Strapi headless CMS with a static frontend", "classification": "int_recommended",
+      "rationale": "Marketing editors need simple page editing and a large plugin ecosystem.", "effort_impact": "Headless alternative adds roughly 25–40 % build effort." },
+    { "layer": "Database", "proposed": "MySQL", "alternative": "MariaDB", "classification": "int_recommended", "rationale": "Standard CMS pairing.", "effort_impact": "None." },
+    { "layer": "Hosting", "proposed": "Client-provided hosting", "alternative": "INT-managed cloud hosting", "classification": "to_be_confirmed", "rationale": "Hosting ownership assumed to sit with the client.", "effort_impact": "Managed hosting adds provisioning and monitoring tasks." }
+  ],
+  "overheads": [
+    { "name": "QA + Security Validation", "pct": 22, "reason_if_changed": null },
+    { "name": "Project Management", "pct": 8, "reason_if_changed": null },
+    { "name": "UAT", "pct": 10, "reason_if_changed": null },
+    { "name": "Documentation & KT", "pct": 3, "reason_if_changed": null },
+    { "name": "Contingency", "pct": 8, "reason_if_changed": "Client content delivery and approval turnaround are unconfirmed (risk R-1); hosting access is assumed (risk R-2)." }
+  ],
+  "type_applicability": [
+    { "type": "Discovery / Requirement Analysis", "applicability": "in_scope", "reason": null },
+    { "type": "UI/UX", "applicability": "in_scope", "reason": null },
+    { "type": "Frontend", "applicability": "in_scope", "reason": null },
+    { "type": "Backend", "applicability": "in_scope", "reason": null },
+    { "type": "Database", "applicability": "not_applicable", "reason": "CMS-managed schema; no custom data model." },
+    { "type": "API Integration", "applicability": "excluded", "reason": "No client-system integration in scope." },
+    { "type": "Third-party Integration", "applicability": "in_scope", "reason": null },
+    { "type": "AI/ML", "applicability": "not_applicable", "reason": "Not requested." },
+    { "type": "RAG", "applicability": "not_applicable", "reason": "Not requested." },
+    { "type": "Testing / QA", "applicability": "in_scope", "reason": "Covered by the QA and UAT overhead percentages." },
+    { "type": "DevOps", "applicability": "in_scope", "reason": null },
+    { "type": "Cloud Infrastructure", "applicability": "not_applicable", "reason": "Client provides hosting." },
+    { "type": "Security", "applicability": "not_applicable", "reason": "Standard hardening inside CMS setup; no compliance controls requested." },
+    { "type": "Data Migration", "applicability": "excluded", "reason": "Content migration not in scope (see gaps assumed)." },
+    { "type": "Documentation", "applicability": "in_scope", "reason": "Covered by the documentation overhead percentage." },
+    { "type": "Project Management", "applicability": "in_scope", "reason": "Covered by the PM overhead percentage." },
+    { "type": "Monitoring / Logging", "applicability": "not_applicable", "reason": "Client hosting monitoring assumed." },
+    { "type": "Maintenance", "applicability": "excluded", "reason": "Post-launch only; see maintenance_recommendation." }
+  ],
+  "team_plan": [
+    { "role": "Business Analyst", "fte": 0.5, "phases": ["Discovery & Design", "Handover"] },
+    { "role": "UI/UX Designer", "fte": 1.0, "phases": ["Discovery & Design"] },
+    { "role": "Frontend Developer", "fte": 1.0, "phases": ["Build"] },
+    { "role": "Backend Developer", "fte": 0.5, "phases": ["Build"] },
+    { "role": "DevOps Engineer", "fte": 0.5, "phases": ["Build"] },
+    { "role": "QA Engineer", "fte": 1.0, "phases": ["QA", "UAT"] },
+    { "role": "Project Manager", "fte": 0.3, "phases": ["All"] }
+  ],
+  "phases": [
+    { "name": "Discovery & Design", "kind": "build", "roles": ["Business Analyst", "UI/UX Designer"], "depends_on": [], "lead_time_weeks": 0 },
+    { "name": "Build", "kind": "build", "roles": ["Frontend Developer", "Backend Developer", "DevOps Engineer"], "depends_on": ["Discovery & Design"], "lead_time_weeks": 1 },
+    { "name": "QA", "kind": "qa", "roles": ["QA Engineer"], "depends_on": ["Build"], "lead_time_weeks": 0 },
+    { "name": "UAT", "kind": "uat", "roles": ["QA Engineer"], "depends_on": ["QA"], "lead_time_weeks": 1 },
+    { "name": "Handover", "kind": "handover", "roles": ["Business Analyst"], "depends_on": ["UAT"], "lead_time_weeks": 0 }
+  ],
+  "timeline_notes": { "productive_hours_per_fte_week": 35, "client_dependency_lead_time": "1 week for final content before build; 1 week for UAT feedback.", "deadline_conflict": null },
+  "cost_drivers": [
+    { "item": "Hosting and database", "category": "cloud", "driver": "traffic and storage", "one_time_or_recurring": "recurring", "sizing_assumption": "Small marketing site, low traffic", "who_bears_cost": "client", "price_status": "not_estimated" },
+    { "item": "Domain and SSL certificate", "category": "domain/SSL", "driver": "per domain per year", "one_time_or_recurring": "recurring", "sizing_assumption": "One domain", "who_bears_cost": "client", "price_status": "not_estimated" },
+    { "item": "Transactional email service", "category": "SMS/WhatsApp/email gateway", "driver": "emails per month", "one_time_or_recurring": "recurring", "sizing_assumption": "Under a few hundred enquiries per month", "who_bears_cost": "client", "price_status": "not_estimated" }
+  ],
+  "maintenance_recommendation": { "warranty_days": 15, "amc_hours_per_year": 60, "scope": ["security updates", "backups", "minor content and layout changes"], "reasoning": "Small CMS site; flexible hours cover updates and minor edits." },
+  "assumptions": [
+    { "id": "A1", "text": "The client provides final content and images before the build phase starts.", "source": "input", "affects": ["Site Build"] },
+    { "id": "A2", "text": "No content migration; the client enters content through the CMS.", "source": "unanswered_question", "affects": ["Data Migration"] },
+    { "id": "A3", "text": "One design revision round per template.", "source": "inferred", "affects": ["UI/UX"] }
+  ],
+  "exclusions": ["E-commerce and payment integration", "Content writing and photography", "Content migration", "Off-page SEO and social media management", "Post-launch maintenance (separate agreement)"],
+  "client_dependencies": [
+    { "dependency": "Final text content and images", "needed_by": "start of Build", "impact_if_late": "Build and go-live slip day for day." },
+    { "dependency": "Hosting and domain access", "needed_by": "start of Build", "impact_if_late": "Deployment task and go-live blocked." },
+    { "dependency": "Single point of contact with 48-hour approvals", "needed_by": "throughout", "impact_if_late": "Schedule slips and UAT overruns." }
+  ],
+  "risks": [
+    { "id": "R-1", "risk": "Client content arrives late or in several rounds.", "likelihood": "H", "impact": "M", "effort_exposure": "±30–50 h", "mitigation": "Content checklist at sign-off; freeze date in the plan.", "linked_to": ["T4", "Site Build"] },
+    { "id": "R-2", "risk": "Hosting is not ready or restricts required plugins.", "likelihood": "M", "impact": "M", "effort_exposure": "±15–30 h", "mitigation": "Hosting checklist in the first week.", "linked_to": ["T7"] }
+  ],
+  "re_estimation_triggers": ["Content migration added", "More than 12 pages or extra templates", "Any client-system integration", "Multi-language support"],
+  "optional_addons": [ { "item": "Content migration from the existing site", "task_hint": "Depends on page and post count" } ],
+  "revision": null,
+  "self_check": { "ran": true, "iterations": 1, "remaining_failures": [] }
+}

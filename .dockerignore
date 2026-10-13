@@ -1,0 +1,10 @@
+output/
+artifacts/
+tests/
+**/__pycache__/
+**/*.pyc
+.env
+api/.env
+*.xlsx
+.git
+render.yaml

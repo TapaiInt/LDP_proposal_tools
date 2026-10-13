@@ -1,0 +1,21 @@
+# From the v4 folder:  cp api/.env.example api/.env   (edit it)   then   docker compose -f api/docker-compose.yml up -d --build
+services:
+  presales-tools:
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+    image: presales-tools:v4
+    env_file: .env
+    ports:
+      - "8080:8080"
+    volumes:
+      - artifacts:/data/artifacts        # shared, persistent: every worker (and every replica) must see the same volume
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  artifacts:

@@ -1,0 +1,24 @@
+# Render Blueprint: New > Blueprint > pick this repo. Render asks for the values marked sync: false.
+services:
+  - type: web
+    name: ldp-presales-tools
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: .
+    plan: starter            # a persistent disk needs a paid plan; free also sleeps after 15 min idle
+    region: singapore
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: artifacts
+      mountPath: /data/artifacts
+      sizeGB: 5
+    envVars:
+      - key: API_KEYS        # tenant:key[,tenant2:key2]  e.g. presales:<python -c "import secrets; print(secrets.token_urlsafe(32))">
+        sync: false
+      - key: LINK_SECRET     # signs download links; generated once by Render
+        generateValue: true
+      - key: PUBLIC_BASE_URL # https://<service-name>.onrender.com, no trailing slash; set after the first deploy
+        sync: false
+      - key: WEB_CONCURRENCY # workers; they share the one disk
+        value: "2"

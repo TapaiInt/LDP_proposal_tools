@@ -1,0 +1,1118 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Presales estimation tools",
+    "description": "Tool endpoints for the proposal and estimation agents. See v4/integration/IMPLEMENTATION_GUIDE.md.",
+    "version": "v4.1"
+  },
+  "servers": [
+    {
+      "url": "https://tools.example.internal"
+    }
+  ],
+  "paths": {
+    "/v1/tools/save_artifact": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "save_artifact",
+        "description": "Store text or a JSON object as a named artifact in the run's folder and record its sha256. Raw agent outputs (estimation_pass*, estimation_revision*, reviewer_findings*, scope_summary*) are immutable. Use this once for each sub-agent reply, then refer to it by name.",
+        "operationId": "save_artifact",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run identifier, e.g. client-date"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Artifact name, e.g. estimation_pass2.json"
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "Text to store (exactly one of content or json_value)"
+                  },
+                  "json_value": {
+                    "type": "object",
+                    "description": "JSON object to store"
+                  },
+                  "overwrite": {
+                    "type": "boolean",
+                    "description": "Replace an existing non-immutable artifact"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "run_id",
+                  "name"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/tools/get_artifact": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "get_artifact",
+        "description": "Read a text artifact (sliced by offset and max_chars). Binary files return metadata only.",
+        "operationId": "get_artifact",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run identifier"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Artifact name"
+                  },
+                  "offset": {
+                    "type": "integer"
+                  },
+                  "max_chars": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "run_id",
+                  "name"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/tools/list_artifacts": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "list_artifacts",
+        "description": "List artifacts in a run.",
+        "operationId": "list_artifacts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run identifier"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "run_id"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/tools/verify_artifacts": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "verify_artifacts",
+        "description": "Re-hash registered artifacts; reports any raw agent output that changed after saving.",
+        "operationId": "verify_artifacts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run identifier"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "run_id"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/tools/calc_estimate": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "calc_estimate",
+        "description": "Run the deterministic calculator on an estimate artifact: PERT, totals, overheads, by-type, team hours, timeline, 25 structural checks. Writes the derived artifact and returns a compact summary. Use after every estimator output; blocking failures mean the estimate must be retried.",
+        "operationId": "calc_estimate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run identifier"
+                  },
+                  "estimate": {
+                    "type": "string",
+                    "description": "Artifact name of the estimator JSON (raw reply with a ```json fence is accepted)"
+                  },
+                  "previous": {
+                    "type": "string",
+                    "description": "Artifact name of the previous estimate, for a revision delta"
+                  },
+                  "hours_per_fte_week": {
+                    "type": "number"
+                  },
+                  "out": {
+                    "type": "string",
+                    "description": "Derived artifact name (default estimation_derived.json)"
+                  },
+                  "include_derived": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "run_id",
+                  "estimate"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/tools/ensemble_select": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "ensemble_select",
+        "description": "Given several independent estimator runs (artifact names), select the median run, copy it byte-for-byte to select_as, write the derived artifact and a spread report.",
+        "operationId": "ensemble_select",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run identifier"
+                  },
+                  "runs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array",
+                    "description": "Artifact names of the runs"
+                  },
+                  "out": {
+                    "type": "string",
+                    "description": "Derived artifact name"
+                  },
+                  "report": {
+                    "type": "string",
+                    "description": "Report artifact name"
+                  },
+                  "select_as": {
+                    "type": "string",
+                    "description": "Name for the selected raw estimate (default estimation_pass2.json)"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "run_id",
+                  "runs"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/tools/prepare_review": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "prepare_review",
+        "description": "Create the reviewer input: the estimate without the estimator's reasoning, plus calculator numbers.",
+        "operationId": "prepare_review",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run identifier"
+                  },
+                  "estimate": {
+                    "type": "string",
+                    "description": "Estimate artifact name"
+                  },
+                  "derived": {
+                    "type": "string",
+                    "description": "Derived artifact name"
+                  },
+                  "out": {
+                    "type": "string",
+                    "description": "Output artifact name"
+                  },
+                  "include_content": {
+                    "type": "boolean",
+                    "description": "Also return the JSON text"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "run_id",
+                  "estimate",
+                  "derived"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/tools/build_workbook": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "build_workbook",
+        "description": "Build the estimation workbook (.xlsx) with live formulas from the estimate and derived artifacts; verifies totals independently.",
+        "operationId": "build_workbook",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run identifier"
+                  },
+                  "estimate": {
+                    "type": "string",
+                    "description": "Estimate artifact name"
+                  },
+                  "derived": {
+                    "type": "string",
+                    "description": "Derived artifact name"
+                  },
+                  "out_name": {
+                    "type": "string",
+                    "description": "Workbook artifact name ending in .xlsx, e.g. Estimation_Client_V1.0.xlsx"
+                  },
+                  "client": {
+                    "type": "string",
+                    "description": "Client name"
+                  },
+                  "version": {
+                    "type": "string",
+                    "description": "Version"
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "delivery_reviewed",
+                      "approved"
+                    ],
+                    "description": "Estimate state"
+                  },
+                  "draft": {
+                    "type": "string",
+                    "description": "Comma-separated failed blocking check ids; stamps the workbook DRAFT"
+                  },
+                  "sources": {
+                    "type": "string",
+                    "description": "Source document names"
+                  },
+                  "clarifications": {
+                    "type": [
+                      "array",
+                      "string",
+                      "null"
+                    ],
+                    "description": "List of Q&A objects, or the name of a JSON artifact"
+                  },
+                  "check": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "run_id",
+                  "estimate",
+                  "derived",
+                  "out_name"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/tools/check_consistency": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "check_consistency",
+        "description": "Run the scripted consistency checks over the run's artifacts. Needs Proposal_*.md, Presales_Review_Notes_*.md, Estimation_*.xlsx, the estimate and the derived artifact saved in the run. Returns failures and warnings.",
+        "operationId": "check_consistency",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run identifier"
+                  },
+                  "forbid": {
+                    "type": "string",
+                    "description": "Comma-separated names of other clients that must not appear"
+                  },
+                  "expose_hours": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "run_id"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/tools/hash_text": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "hash_text",
+        "description": "sha256 of a string.",
+        "operationId": "hash_text",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "description": "Text"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "content"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/tools/get_module": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "get_module",
+        "description": "Load one of the master agent's instruction modules by name: proposal_template (load at the start of proposal construction), quality_gate (load at finalisation), fault_tolerance (load only for exceptional inputs).",
+        "operationId": "get_module",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "enum": [
+                      "proposal_template",
+                      "quality_gate",
+                      "fault_tolerance"
+                    ],
+                    "description": "Module name"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/tools/create_download_link": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "create_download_link",
+        "description": "Create a time-limited download link for a stored artifact (for example the workbook or proposal) that the end user can open without an API key.",
+        "operationId": "create_download_link",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run identifier"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Artifact name, e.g. Estimation_Client_V1.0.xlsx"
+                  },
+                  "ttl_seconds": {
+                    "type": "integer",
+                    "description": "Link lifetime in seconds (default and maximum set by the server)"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "run_id",
+                  "name"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/manifest": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Manifest",
+        "operationId": "manifest_v1_manifest_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/runs/{run_id}/artifacts": {
+      "get": {
+        "tags": [
+          "artifacts"
+        ],
+        "summary": "List Run",
+        "operationId": "list_run_v1_runs__run_id__artifacts_get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runs/{run_id}/artifacts/{name}": {
+      "get": {
+        "tags": [
+          "artifacts"
+        ],
+        "summary": "Download",
+        "operationId": "download_v1_runs__run_id__artifacts__name__get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "type": "apiKey",
+        "description": "Tenant API key",
+        "in": "header",
+        "name": "X-API-Key"
+      },
+      "HTTPBearer": {
+        "type": "http",
+        "description": "Tenant API key as a bearer token",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
