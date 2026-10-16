@@ -22,6 +22,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS_DIR = os.path.normpath(os.path.join(HERE, "..", "tools"))
@@ -180,9 +181,50 @@ def verify_artifacts(run_id):
     return {"verified": not bad, "problems": bad}
 
 
+def _shape_problems(est):
+    """Structural problems that would crash the calculator (a list of objects containing text, a missing list...)."""
+    if not isinstance(est, dict):
+        return ["the estimate is not a JSON object"]
+    out = []
+
+    def objects(key, required=()):
+        v = est.get(key)
+        if v is None:
+            return []
+        if not isinstance(v, list):
+            out.append(f"`{key}` must be a list")
+            return []
+        good = []
+        for i, item in enumerate(v):
+            if not isinstance(item, dict):
+                out.append(f"`{key}[{i}]` must be an object, found text or a number: {str(item)[:60]!r}")
+            else:
+                good.append(item)
+                out.extend(f"`{key}[{i}]` has no `{r}`" for r in required if r not in item)
+        return good
+
+    objects("modules", ("module",))
+    for mi, m in enumerate(est.get("modules") or []):
+        if not isinstance(m, dict):
+            continue
+        tasks = m.get("tasks", [])
+        if not isinstance(tasks, list):
+            out.append(f"`modules[{mi}].tasks` must be a list")
+            continue
+        for ti, t in enumerate(tasks):
+            if not isinstance(t, dict):
+                out.append(f"`modules[{mi}].tasks[{ti}]` must be an object, found: {str(t)[:60]!r}")
+    for key in ("overheads", "phases", "team_plan", "requirement_items"):
+        objects(key)
+    return out
+
+
 def calc_estimate(run_id, estimate, previous=None, hours_per_fte_week=None, out="estimation_derived.json", include_derived=False):
     """Run the calculator on an estimate artifact. Writes the derived artifact; returns a compact summary."""
     est = ec.load(_path(run_id, estimate, must_exist=True))
+    problems = _shape_problems(est)
+    if problems:
+        raise ToolError(f"{estimate} has the wrong shape; fix the JSON and save it under a new name: " + "; ".join(problems[:8]))
     d = ec.compute(est, hours_per_fte_week)
     if previous:
         d["revision_delta"] = ec.diff(d, ec.compute(ec.load(_path(run_id, previous, must_exist=True)), hours_per_fte_week))
@@ -349,18 +391,87 @@ TOOLS = {
 }
 
 
+_TRUE, _FALSE = {"true", "1", "yes", "y"}, {"false", "0", "no", "n"}
+
+
+def _coerce_value(spec, value):
+    """Form-based platforms send every value as a string. Convert it to the schema's type; returns (keep, value)."""
+    if not isinstance(value, str):
+        return True, value
+    types = spec.get("type")
+    types = types if isinstance(types, list) else [types]
+    s = value.strip()
+    if "string" in types:
+        if s[:1] in ("[", "{") and ("array" in types or "object" in types):
+            try:
+                return True, json.loads(s)
+            except ValueError:
+                pass
+        return True, value
+    if s == "":
+        return False, None
+    t = types[0]
+    try:
+        if t == "integer":
+            return True, int(float(s))
+        if t == "number":
+            return True, float(s)
+        if t == "boolean":
+            if s.lower() in _TRUE:
+                return True, True
+            if s.lower() in _FALSE:
+                return True, False
+            raise ValueError
+        if t in ("object", "array"):
+            try:
+                v = json.loads(s)
+            except ValueError:
+                if t == "array":
+                    return True, [x.strip() for x in s.split(",") if x.strip()]
+                raise
+            if not isinstance(v, list if t == "array" else dict):
+                raise ValueError
+            return True, v
+    except ValueError:
+        raise ToolError(f"cannot read {value!r} as {t}")
+    return True, value
+
+
+def _coerce_args(name, args):
+    """Make string-typed arguments match the tool's schema; drop empty optional values so the defaults apply."""
+    schema = TOOLS[name][2]
+    props, required = schema["properties"], set(schema.get("required", []))
+    out = {}
+    for k, v in (args or {}).items():
+        spec = props.get(k)
+        if spec is None:
+            out[k] = v
+            continue
+        if k not in required and (v is None or (isinstance(v, str) and v.strip() == "")):
+            continue
+        keep, v = _coerce_value(spec, v)
+        if keep:
+            out[k] = v
+    return out
+
+
+def _where(e):
+    tb = traceback.extract_tb(e.__traceback__)
+    return f" (at {os.path.basename(tb[-1].filename)}:{tb[-1].lineno})" if tb else ""
+
+
 def call(name, args=None):
     if name not in TOOLS:
         return {"ok": False, "error": f"unknown tool {name!r}", "tools": sorted(TOOLS)}
     try:
-        res = TOOLS[name][0](**(args or {}))
+        res = TOOLS[name][0](**_coerce_args(name, args))
         return dict({"ok": True}, **res) if "ok" not in res else res
     except ToolError as e:
         return {"ok": False, "error": str(e)}
     except TypeError as e:
-        return {"ok": False, "error": f"bad arguments for {name}: {e}"}
+        return {"ok": False, "error": f"bad arguments for {name}: {e}{_where(e)}"}
     except Exception as e:  # never raise to the platform
-        return {"ok": False, "error": f"{type(e).__name__}: {e}"}
+        return {"ok": False, "error": f"{type(e).__name__}: {e}{_where(e)}"}
 
 
 def manifest():
