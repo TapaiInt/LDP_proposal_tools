@@ -2,7 +2,7 @@
 """Scripted artifact-consistency checks (X-checks) for one run's output folder.
 
 Expected files in --dir (first match wins):
-    estimation_revision.json or estimation_pass2.json   (final estimate)
+    estimation_revision*.json, else estimation_pass2_retry*.json, else estimation_pass2.json (newest COMPLETE estimate; or --estimate NAME)
     estimation_derived.json                             (calculator output for that estimate)
     Estimation_*.xlsx    Proposal_*.md    Presales_Review_Notes_*.md
     case.json (optional)  -> X10 hash verification
@@ -47,6 +47,21 @@ def first(dirpath, *patterns):
     return None
 
 
+def usable_estimate(path):
+    """A complete estimate package: valid JSON object with modules that hold tasks (not a patch or a cut-off file)."""
+    try:
+        e = ec.load(path)
+    except (ValueError, OSError):
+        return False
+    return isinstance(e, dict) and any(isinstance(m, dict) and m.get("tasks") for m in e.get("modules") or [])
+
+
+def pick_estimate(dirpath):
+    """Latest complete estimate: revision, then the newest pass-2 retry, then pass 2. Skips unusable files."""
+    cands = sorted(glob.glob(os.path.join(dirpath, "estimation_revision*.json")), reverse=True)         + sorted(glob.glob(os.path.join(dirpath, "estimation_pass2_retry*.json")), reverse=True)         + sorted(glob.glob(os.path.join(dirpath, "estimation_pass2.json")))
+    return next((c for c in cands if usable_estimate(c)), None)
+
+
 def sections(md):
     """Return {section_number: text} using numbered markdown headings like '## 8. Functional ...'."""
     heads = [(m.start(), int(m.group(1))) for m in re.finditer(r"^#{1,4}\s*(\d{1,2})[\.\)]?\s+\S.*$", md, re.M)]
@@ -62,11 +77,15 @@ def main():
     ap.add_argument("--dir", required=True)
     ap.add_argument("--forbid", default="", help="comma-separated names that must not appear in the client proposal")
     ap.add_argument("--expose-hours", action="store_true", help="allow person-hours in the proposal")
+    ap.add_argument("--estimate", default="", help="file name of the final estimate in --dir (default: newest complete revision / retry / pass 2)")
+    ap.add_argument("--derived", default="", help="file name of the calculator output in --dir (default: estimation_derived.json)")
     a = ap.parse_args()
     d = a.dir
 
-    est_p = first(d, "estimation_revision.json", "estimation_pass2.json")
-    der_p = first(d, "estimation_derived.json")
+    est_p = os.path.join(d, a.estimate) if a.estimate else pick_estimate(d)
+    der_p = os.path.join(d, a.derived) if a.derived else first(d, "estimation_derived.json")
+    est_p = est_p if est_p and os.path.exists(est_p) else None
+    der_p = der_p if der_p and os.path.exists(der_p) else None
     xl_p = first(d, "Estimation_*.xlsx")
     prop_p = first(d, "Proposal_*.md")
     notes_p = first(d, "Presales_Review_Notes_*.md")
@@ -81,7 +100,14 @@ def main():
         chk("X0", False, f"required files not found in {d}: {missing}")
         est = der = None
     else:
-        est, der = ec.load(est_p), json.load(open(der_p, encoding="utf-8"))
+        est, der = None, None
+        try:
+            est, der = ec.load(est_p), json.load(open(der_p, encoding="utf-8"))
+        except ValueError as e:
+            chk("X0", False, f"cannot read {os.path.basename(est_p)} or {os.path.basename(der_p)} as JSON: {e}")
+        if est is not None and not usable_estimate(est_p):
+            chk("X0", False, f"{os.path.basename(est_p)} is not a complete estimate (no modules with tasks): pass the right file as `estimate`")
+            est = None
     prop = open(prop_p, encoding="utf-8").read() if prop_p else ""
     notes = open(notes_p, encoding="utf-8").read() if notes_p else ""
     secs = sections(prop)

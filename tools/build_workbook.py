@@ -93,7 +93,7 @@ def build(est, der, a):
         for t in m["tasks"]:
             n += 1
             ws.cell(r, 1, n)
-            ws.cell(r, 2, f"{t['title']} — {t['delivers']}").alignment = WRAP
+            ws.cell(r, 2, f"{t['title']} — {t.get('delivers') or ''}".rstrip(" —")).alignment = WRAP
             ws.cell(r, 3, t["type"])
             ws.cell(r, 4, t["role"])
             ws.cell(r, 5, float(t["optimistic_h"]))

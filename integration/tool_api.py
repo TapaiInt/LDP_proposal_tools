@@ -181,6 +181,17 @@ def verify_artifacts(run_id):
     return {"verified": not bad, "problems": bad}
 
 
+def _load_estimate(run_id, name):
+    """Load an estimate artifact; name the file and say whether it looks cut off when the JSON is invalid."""
+    p = _path(run_id, name, must_exist=True)
+    try:
+        return ec.load(p)
+    except ValueError as e:
+        text = open(p, encoding="utf-8").read().rstrip()
+        hint = "it looks cut off (does not end with a closing brace); ask the estimator to re-send the complete package" if not text.endswith(("}", "```"))             else "it was edited or malformed; ask the estimator to re-send the complete package"
+        raise ToolError(f"{name} is not valid JSON ({e}); {len(text)} characters, ends with {text[-40:]!r}: {hint}, saved under a new name")
+
+
 def _shape_problems(est):
     """Structural problems that would crash the calculator (a list of objects containing text, a missing list...)."""
     if not isinstance(est, dict):
@@ -216,18 +227,20 @@ def _shape_problems(est):
                 out.append(f"`modules[{mi}].tasks[{ti}]` must be an object, found: {str(t)[:60]!r}")
     for key in ("overheads", "phases", "team_plan", "requirement_items"):
         objects(key)
+    if not out and not any(isinstance(m, dict) and m.get("tasks") for m in est.get("modules") or []):
+        out.append("the estimate has no tasks: it is a partial package or a revision patch; a complete package (modules with tasks, requirement_items, type_applicability, team_plan, phases) is required")
     return out
 
 
 def calc_estimate(run_id, estimate, previous=None, hours_per_fte_week=None, out="estimation_derived.json", include_derived=False):
     """Run the calculator on an estimate artifact. Writes the derived artifact; returns a compact summary."""
-    est = ec.load(_path(run_id, estimate, must_exist=True))
+    est = _load_estimate(run_id, estimate)
     problems = _shape_problems(est)
     if problems:
         raise ToolError(f"{estimate} has the wrong shape; fix the JSON and save it under a new name: " + "; ".join(problems[:8]))
     d = ec.compute(est, hours_per_fte_week)
     if previous:
-        d["revision_delta"] = ec.diff(d, ec.compute(ec.load(_path(run_id, previous, must_exist=True)), hours_per_fte_week))
+        d["revision_delta"] = ec.diff(d, ec.compute(_load_estimate(run_id, previous), hours_per_fte_week))
     _write_text(run_id, out, json.dumps(d, indent=2, ensure_ascii=False), overwrite=True)
     _register(run_id, out)
     failed = [c for c in d["checks"] if not c["pass"]]
@@ -302,6 +315,8 @@ def build_workbook(run_id, estimate, derived, out_name, client="", version="1.0"
     if sources:
         args += ["--sources", sources]
     if clarifications:
+        if isinstance(clarifications, str) and not clarifications.lower().endswith(".json"):
+            raise ToolError("clarifications must be a list of Q&A objects or the name of a .json artifact (for example clarifications.json), not " + repr(clarifications))
         if isinstance(clarifications, list):
             save_artifact(run_id, "clarifications.json", json_value=clarifications, overwrite=True)
             clarifications = "clarifications.json"
@@ -315,9 +330,13 @@ def build_workbook(run_id, estimate, derived, out_name, client="", version="1.0"
     return {"ok": code == 0, "artifact": out_name, "bytes": os.path.getsize(_path(run_id, out_name)), "output": so}
 
 
-def check_consistency(run_id, forbid="", expose_hours=False):
+def check_consistency(run_id, forbid="", expose_hours=False, estimate="", derived=""):
     """Run the scripted X-checks over the run's artifacts (Proposal_*.md, Presales_Review_Notes_*.md, Estimation_*.xlsx, ...)."""
     args = ["--dir", _run_dir(run_id)]
+    if estimate:
+        args += ["--estimate", os.path.basename(_path(run_id, estimate, must_exist=True))]
+    if derived:
+        args += ["--derived", os.path.basename(_path(run_id, derived, must_exist=True))]
     if forbid:
         args += ["--forbid", forbid]
     if expose_hours:
@@ -384,7 +403,8 @@ TOOLS = {
                           sources=S("Source document names"), clarifications={"type": ["array", "string", "null"], "description": "List of Q&A objects, or the name of a JSON artifact", "_req": False},
                           check={"type": "boolean", "_req": False})),
     "check_consistency": (check_consistency, "Run the scripted consistency checks over the run's artifacts. Needs Proposal_*.md, Presales_Review_Notes_*.md, Estimation_*.xlsx, the estimate and the derived artifact saved in the run. Returns failures and warnings.",
-                          _p(run_id=S("Run identifier", True), forbid=S("Comma-separated names of other clients that must not appear"), expose_hours={"type": "boolean", "_req": False})),
+                          _p(run_id=S("Run identifier", True), forbid=S("Comma-separated names of other clients that must not appear"), expose_hours={"type": "boolean", "_req": False},
+                             estimate=S("Final estimate artifact name (default: newest complete revision, retry or pass 2)"), derived=S("Derived artifact name (default estimation_derived.json)"))),
     "hash_text": (hash_text, "sha256 of a string.", _p(content=S("Text", True))),
     "get_module": (get_module, "Load one of the master agent's instruction modules by name: proposal_template (load at the start of proposal construction), quality_gate (load at finalisation), fault_tolerance (load only for exceptional inputs).",
                    _p(name=S("Module name", True, enum=["proposal_template", "quality_gate", "fault_tolerance"]))),
