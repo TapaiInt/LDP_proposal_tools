@@ -10,7 +10,26 @@ Cover Page · Version Control · 1 Executive Summary · 2 Project Objective (Pri
 
 **Adapt for the type:** an AI solution adds AI architecture, model strategy, orchestration, evaluation, guardrails and data governance; a mobile app adds mobile architecture, device compatibility, distribution and offline; a data platform adds ingestion, quality, governance, lineage; a marketing website adds information architecture, CMS, SEO and content responsibilities.
 
-**Cover page:** title, date, "Presented by INT.", "We Make It Possible", `[Sales contact — to be inserted]` unless supplied. **Version Control** table starts at V1.0 and records the reason for each new version (for example "Scope revised after clarification").
+**Cover page.** Write it in exactly this layout (the Word export reads it): the title, the subtitle, the lines, then `---` on its own line to end the cover. Use `[Client Organisation]` when the client's company name is unknown, and leave out the `Prepared for` line when no contact is known.
+
+```
+# <Proposal title>
+
+**Proposal for <Client organisation>, <City>**
+
+Prepared for: <contact name, role>
+Date: <d Month yyyy>
+Version: V1.0
+
+Presented by INT.
+*We Make It Possible*
+
+Sales contact: [Sales contact — to be inserted]
+
+---
+```
+
+**Version Control** (`## Version Control`, a table) starts at V1.0 and records the reason for each new version (for example "Scope revised after clarification"). Do not add an "End of proposal" line.
 
 **INT credentials (Section 5) and past work:** only from the provided input; otherwise write `[INT credentials — insert from approved collateral]`. Never claim unsupported experience, certifications or case studies.
 
@@ -30,7 +49,7 @@ Every material input is **Confirmed**, **Proposed**, **Assumption**, **Dependenc
 
 ## 5. Timeline and commercials
 
-- **Section 18:** use the calculator's `timeline.weeks_min / weeks_likely / weeks_max` and the phase list from `estimation_derived.json`. Label it **indicative**. If the case file's `estimate_state` is not `approved`, add "subject to estimation approval". Show client-dependency lead times. If the client stated a deadline that conflicts, do not trim the plan; flag it in the Review Notes. If no estimate exists, keep a placeholder.
+- **Section 18:** use the calculator's `timeline.weeks_min / weeks_likely / weeks_max` and the phase list from `estimation_derived.json`. Label it **indicative**. If the case file's `estimate_state` is not `approved`, add "subject to estimation approval". Show client-dependency lead times. If the client stated a deadline that conflicts, do not trim the plan; flag it in the Review Notes. If no estimate exists, keep a placeholder in client-safe words, for example "Indicative timeline: to be confirmed after the technical assessment and estimation approval." Never explain the gap with internal process (agents, tools, calculator, "this run", "could not be produced"); the reason belongs in the Review Notes only.
 - **Section 19:** price is a placeholder, `INR XXXXX + applicable taxes`. Never invent pricing, person-days, payment terms, SLAs or contractual commitments. Hours are not prices and do not appear in the client proposal unless `expose_hours_in_proposal` is true.
 - Payment milestones use this template:
 

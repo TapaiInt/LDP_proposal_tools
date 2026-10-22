@@ -5,7 +5,7 @@ Usage:
     python build_docx.py Proposal_Client_Title_V1.0.md -o Proposal_Client_Title_V1.0.docx [--version V1.0]
 
 Input conventions (the same markdown the master writes and the scripted checks read):
-    * everything before the first `---` line is the cover page: `# Title`, a `**subtitle**` line, plain lines, `Presented by INT.`, `*tagline*`
+    * everything before the first `---` line (or, without one, before the first `##` heading) is the cover page: `# Title`, a `**subtitle**` line, plain lines, `Presented by INT.`, `*tagline*`
     * `## 1. Section` becomes Heading 1, `###` Heading 2, `####` Heading 3
     * `- item` / `* item` bullets (indent two spaces per level), `1. item` numbered items, `| a | b |` tables, `> quote`, ``` code fences
     * **bold**, *italic* and `code` inside text; the first `---` is a page break (end of the cover), later ones are ignored
@@ -163,6 +163,9 @@ def build(md_text, version="", out_stats=None):
                 in_cover, seen_rule = False, True
             i += 1
             continue
+        if in_cover and re.match(r"#{2,6}\s", stripped):            # no rule after the cover: the first section heading ends it
+            doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+            in_cover, seen_rule = False, True
         if in_cover:
             par = doc.add_paragraph()
             par.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -170,12 +173,14 @@ def build(md_text, version="", out_stats=None):
                 par.paragraph_format.space_before = Pt(110)
                 par.paragraph_format.space_after = Pt(14)
                 add_runs(par, stripped[2:].strip(), size=28, bold=True, color=TITLE_NAVY)
+            elif stripped.strip("*_ ").lower().startswith("presented by"):
+                par.paragraph_format.space_before = Pt(30)
+                add_runs(par, stripped.strip("*_ "), size=13, bold=True)
+            elif stripped.strip("*_ ").lower().startswith("we make it possible"):
+                add_runs(par, stripped.strip("*_ "), size=12, italic=True)
             elif stripped.startswith("**") and stripped.endswith("**"):
                 par.paragraph_format.space_after = Pt(18)
                 add_runs(par, stripped.strip("*"), size=16, bold=True)
-            elif stripped.lower().startswith("presented by"):
-                par.paragraph_format.space_before = Pt(30)
-                add_runs(par, stripped, size=13, bold=True)
             elif stripped.startswith("*") and stripped.endswith("*"):
                 add_runs(par, stripped.strip("*"), size=12, italic=True)
             else:
