@@ -11,7 +11,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
-from LDP_proposal_tools.api.app import create_app, load_config  # noqa: E402
+from api.app import create_app, load_config  # noqa: E402
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--server-url", default=os.environ.get("PUBLIC_BASE_URL", "https://tools.example.internal"))

@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://tools.example.internal"
+      "url": "https://ldp-proposal-tools.onrender.com"
     }
   ],
   "paths": {
@@ -643,6 +643,82 @@
         ]
       }
     },
+    "/v1/tools/build_docx": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "build_docx",
+        "description": "Convert the client proposal (the Proposal_*.md artifact) into a Word .docx in INT's proposal style: cover page, numbered headings, tables, running header and footer. Call it after the proposal text is final and the consistency checks have run.",
+        "operationId": "build_docx",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run identifier"
+                  },
+                  "source": {
+                    "type": "string",
+                    "description": "Proposal markdown artifact name, e.g. Proposal_Client_Title_V1.0.md"
+                  },
+                  "out_name": {
+                    "type": "string",
+                    "description": "Word artifact name ending in .docx, e.g. Proposal_Client_Title_V1.0.docx"
+                  },
+                  "version": {
+                    "type": "string",
+                    "description": "Version shown in the page header, e.g. V1.0 (default: read from the cover page)"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "run_id",
+                  "source",
+                  "out_name"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/v1/tools/check_consistency": {
       "post": {
         "tags": [
@@ -666,6 +742,14 @@
                   },
                   "expose_hours": {
                     "type": "boolean"
+                  },
+                  "estimate": {
+                    "type": "string",
+                    "description": "Final estimate artifact name (default: newest complete revision, retry or pass 2)"
+                  },
+                  "derived": {
+                    "type": "string",
+                    "description": "Derived artifact name (default estimation_derived.json)"
                   }
                 },
                 "additionalProperties": false,

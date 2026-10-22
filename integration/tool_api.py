@@ -330,6 +330,22 @@ def build_workbook(run_id, estimate, derived, out_name, client="", version="1.0"
     return {"ok": code == 0, "artifact": out_name, "bytes": os.path.getsize(_path(run_id, out_name)), "output": so}
 
 
+def build_docx(run_id, source, out_name, version=""):
+    """Convert the client proposal (markdown artifact) into a Word document in INT's proposal style."""
+    if not out_name.lower().endswith(".docx"):
+        raise ToolError("out_name must end with .docx")
+    if not source.lower().endswith(".md"):
+        raise ToolError("source must be the proposal markdown artifact (Proposal_*.md)")
+    args = [_path(run_id, source, True), "-o", _path(run_id, out_name)]
+    if version:
+        args += ["--version", version]
+    code, so, se = _py("build_docx.py", *args)
+    if code != 0:
+        raise ToolError(f"build_docx failed: {se or so}")
+    _register(run_id, out_name)
+    return {"ok": True, "artifact": out_name, "bytes": os.path.getsize(_path(run_id, out_name)), "output": so}
+
+
 def check_consistency(run_id, forbid="", expose_hours=False, estimate="", derived=""):
     """Run the scripted X-checks over the run's artifacts (Proposal_*.md, Presales_Review_Notes_*.md, Estimation_*.xlsx, ...)."""
     args = ["--dir", _run_dir(run_id)]
@@ -402,6 +418,9 @@ TOOLS = {
                           state=S("Estimate state", enum=["draft", "delivery_reviewed", "approved"]), draft=S("Comma-separated failed blocking check ids; stamps the workbook DRAFT"),
                           sources=S("Source document names"), clarifications={"type": ["array", "string", "null"], "description": "List of Q&A objects, or the name of a JSON artifact", "_req": False},
                           check={"type": "boolean", "_req": False})),
+    "build_docx": (build_docx, "Convert the client proposal (the Proposal_*.md artifact) into a Word .docx in INT's proposal style: cover page, numbered headings, tables, running header and footer. Call it after the proposal text is final and the consistency checks have run.",
+                    _p(run_id=S("Run identifier", True), source=S("Proposal markdown artifact name, e.g. Proposal_Client_Title_V1.0.md", True),
+                       out_name=S("Word artifact name ending in .docx, e.g. Proposal_Client_Title_V1.0.docx", True), version=S("Version shown in the page header, e.g. V1.0 (default: read from the cover page)"))),
     "check_consistency": (check_consistency, "Run the scripted consistency checks over the run's artifacts. Needs Proposal_*.md, Presales_Review_Notes_*.md, Estimation_*.xlsx, the estimate and the derived artifact saved in the run. Returns failures and warnings.",
                           _p(run_id=S("Run identifier", True), forbid=S("Comma-separated names of other clients that must not appear"), expose_hours={"type": "boolean", "_req": False},
                              estimate=S("Final estimate artifact name (default: newest complete revision, retry or pass 2)"), derived=S("Derived artifact name (default estimation_derived.json)"))),

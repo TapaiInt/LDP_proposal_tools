@@ -89,6 +89,15 @@ def main():
             if link.get("ok"):
                 code, data, hdr = http("GET", link["url"])
                 step("download via signed link (no key)", code == 200 and data[:2] == b"PK" and "spreadsheetml" in hdr.get("content-type", ""), f"{code} {hdr.get('content-type')}")
+        md = "# E2E Proposal" + chr(10) + chr(10) + "**Proposal for E2E**" + chr(10) + "Version: V1.0" + chr(10) + chr(10) + "---" + chr(10) + chr(10) + "## 1. Executive Summary" + chr(10) + chr(10) + "- one point" + chr(10)
+        r = call("save_artifact", {"run_id": run, "name": "Proposal_E2E_V1.0.md", "content": md})
+        step("save proposal markdown", r.get("ok"), r)
+        r = call("build_docx", {"run_id": run, "source": "Proposal_E2E_V1.0.md", "out_name": "Proposal_E2E_V1.0.docx", "version": "V1.0"})
+        step("build_docx", r.get("ok"), r)
+        if r.get("ok"):
+            link = call("create_download_link", {"run_id": run, "name": "Proposal_E2E_V1.0.docx", "ttl_seconds": 120})
+            code, data, hdr = http("GET", link["url"]) if link.get("ok") else (0, b"", {})
+            step("download docx via signed link", code == 200 and data[:2] == b"PK" and "wordprocessingml" in hdr.get("content-type", ""), f"{code} {hdr.get('content-type')}")
         r = call("verify_artifacts", {"run_id": run})
         step("verify_artifacts", r.get("verified"), r)
         step("tools are visible in the OpenAPI document", len(json.loads(http("GET", a.base_url + "/openapi.json")[1])["paths"]) >= 12)
