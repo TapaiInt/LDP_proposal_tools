@@ -151,6 +151,30 @@ def save_artifact(run_id, name, content=None, json_value=None, overwrite=False):
     return {"name": name, **info}
 
 
+def promote_artifact(run_id, source, name):
+    """Copy an existing artifact to a new name on the server, byte for byte, and register its hash.
+
+    Used to turn the estimator's calculator-checked draft into the immutable raw output (estimation_pass2.json ...)
+    without anyone re-typing a 30,000-character JSON."""
+    if source == name:
+        raise ToolError("source and name are the same file")
+    sp = _path(run_id, source, must_exist=True)
+    if name.startswith(("estimation_pass", "estimation_revision")):
+        problems = _shape_problems(_load_estimate(run_id, source))
+        if problems:
+            raise ToolError(f"{source} cannot become {name}: it is not a complete estimate: " + "; ".join(problems[:6]))
+    dst = _path(run_id, name)
+    data = open(sp, "rb").read()
+    try:
+        with open(dst, "xb") as f:                      # exclusive create: a raw output name is never overwritten
+            f.write(data)
+    except FileExistsError:
+        if hashlib.sha256(data).hexdigest() == _sha(dst):
+            return {"name": name, "source": source, "already_existed": True, **_register(run_id, name)}
+        raise ToolError(f"{name} already exists with different content; promote to the next retry name (for example estimation_pass2_retry1.json)")
+    return {"name": name, "source": source, **_register(run_id, name)}
+
+
 def get_artifact(run_id, name, offset=0, max_chars=20000):
     """Read a text artifact (sliced). Binary artifacts return metadata only."""
     p = _path(run_id, name, must_exist=True)
@@ -398,6 +422,9 @@ TOOLS = {
                       _p(run_id=S("Run identifier, e.g. client-date", True), name=S("Artifact name, e.g. estimation_pass2.json", True),
                          content=S("Text to store (exactly one of content or json_value)"), json_value={"type": "object", "description": "JSON object to store", "_req": False},
                          overwrite={"type": "boolean", "description": "Replace an existing non-immutable artifact", "_req": False})),
+    "promote_artifact": (promote_artifact, "Copy an existing artifact to a new name on the server, byte for byte, and record its sha256. Use it to turn the draft that passed calc_estimate into the final estimation_pass2.json / estimation_revision.json (or a _retryN name) instead of re-sending the whole JSON. For estimate names the source must be a complete estimate. The new name is created once; an existing name is never overwritten.",
+                         _p(run_id=S("Run identifier", True), source=S("Existing artifact to copy, e.g. the draft file that passed calc_estimate", True),
+                            name=S("New artifact name, e.g. estimation_pass2.json", True))),
     "get_artifact": (get_artifact, "Read a text artifact (sliced by offset and max_chars). Binary files return metadata only.",
                      _p(run_id=S("Run identifier", True), name=S("Artifact name", True), offset={"type": "integer", "_req": False}, max_chars={"type": "integer", "_req": False})),
     "list_artifacts": (list_artifacts, "List artifacts in a run.", _p(run_id=S("Run identifier", True))),

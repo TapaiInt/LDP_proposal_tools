@@ -1,4 +1,4 @@
-# Orbit tool configuration — 13 tools
+# Orbit tool configuration — 14 tools
 
 Base URL: `https://ldp-proposal-tools.onrender.com`
 
@@ -61,7 +61,7 @@ The calculator: PERT, totals, overheads, by-type, team hours, timeline and 25 st
 | `run_id`* | text | |
 | `estimate`* | text | Artifact name of the estimator JSON, e.g. `estimation_pass2.json` |
 | `previous` | text | Earlier estimate artifact, for a revision delta |
-| `hours_per_fte_week` | number | Default 35. Leave out unless INT confirms another value. |
+| `hours_per_fte_week` | number | Default 40 (INT standard). Leave it out; do not add this key to the Orbit form unless the estimate must override it. |
 | `out` | text | Derived artifact name, default `estimation_derived.json` |
 | `include_derived` | boolean | Default false (keeps the reply small) |
 
@@ -153,13 +153,26 @@ Converts the client proposal markdown into a Word `.docx` in INT's proposal styl
 
 Output: `ok`, `artifact`, `bytes`, `output` (counts of headings, tables, list items). Then call `create_download_link` for the `.docx`.
 
+## 14. promote_artifact
+Copies an existing file to a new name on the server, byte for byte, and records its sha256. This is how the estimator makes its final `estimation_pass2.json` (or `estimation_revision.json`, or a `_retryN` name) from the draft that passed `calc_estimate`, without re-sending the whole JSON. For estimate names the source must be a complete estimate; the new name is created once and never overwritten (repeating the same copy is safe).
+
+| Input | Type | Notes |
+|---|---|---|
+| `run_id`* | text | |
+| `source`* | text | The exact draft file whose last `calc_estimate` was accepted, e.g. `estimator_draft_v3.json` |
+| `name`* | text | e.g. `estimation_pass2.json`, `estimation_revision.json`, `estimation_pass2_retry1.json` |
+
+Output: `ok`, `name`, `source`, `sha256`, `bytes`, `saved_at` (and `already_existed: true` when the same content was already there).
+
 ---
 
 ## Which agent gets which tool
 
 | Tool | Master | Estimator | Reviewer |
 |---|---|---|---|
-| save_artifact, get_artifact, list_artifacts, verify_artifacts | yes | save_artifact only | no |
+| save_artifact, list_artifacts, verify_artifacts | yes | save_artifact only | no |
+| get_artifact | yes | no | **yes** (the reviewer reads `review_source.md` and `review_input.json` in pages) |
+| promote_artifact | yes (retries only) | yes | no |
 | calc_estimate | yes | yes (self-check loop) | no |
 | prepare_review, build_workbook, build_docx, check_consistency, get_module, create_download_link, hash_text | yes | no | no |
 | ensemble_select | yes (only for ensemble 3) | no | no |
@@ -206,6 +219,7 @@ This form sends **every key on every call** ("model fills" ticked = the model ma
 | `check_consistency` | `run_id` ✔, `forbid` = "" ✔, `estimate` = "" ✔ (final estimate file name), `derived` = "estimation_derived.json" ✔ |
 | `create_download_link` | `run_id` ✔, `name` ✔ |
 | `build_docx` | `run_id` ✔, `source` ✔, `out_name` ✔, `version` = "" ✔ |
+| `promote_artifact` | `run_id` ✔, `source` ✔, `name` ✔ |
 | `ensemble_select` | skip for now: it needs a list (`runs`), and a text-only form cannot send one. Not needed for ensemble 1 or the single-agent edition |
 
 ## Typed values
@@ -235,4 +249,5 @@ If the agent sees `proposal_hash_text` instead of `hash_text`, the prompts' tool
 | `build_workbook` | Build the .xlsx estimation workbook with live formulas and verify its totals. |
 | `check_consistency` | Run scripted consistency checks across the proposal, review notes, workbook and estimate files in the run. |
 | `create_download_link` | Create a time-limited download link for a stored file, usable without an API key. |
+| `promote_artifact` | Copy an existing file to a new name on the server, byte for byte (for example the calculator-checked draft to estimation_pass2.json). Never re-send a large JSON to create the final file. |
 | `build_docx` | Convert the client proposal markdown (Proposal_*.md) into a Word .docx in INT's proposal style. Call after the proposal text is final and the consistency checks have run. |

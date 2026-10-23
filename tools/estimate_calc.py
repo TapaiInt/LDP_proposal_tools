@@ -99,7 +99,7 @@ def compute(est, hpw=None):
     def chk(cid, ok, detail):
         checks.append({"id": cid, "pass": bool(ok), "detail": detail})
 
-    hpw = hpw or (est.get("timeline_notes") or {}).get("productive_hours_per_fte_week") or 35
+    hpw = hpw or (est.get("timeline_notes") or {}).get("productive_hours_per_fte_week") or 40
     tasks, modules = [], []
     for m in est.get("modules", []):
         for t in m.get("tasks", []):
@@ -135,10 +135,14 @@ def compute(est, hpw=None):
     chk("T2", not unsrc, f"tasks with invalid origin: {unsrc}" if unsrc else "all tasks have a valid origin")
     badlink = [r["id"] for r in items.values() if r.get("coverage") in ("covered", "partial")
                and (not r.get("task_ids") or any(x not in tids for x in r["task_ids"]))]
-    chk("T3", not badlink, f"covered/partial items with missing tasks: {badlink}" if badlink else "covered items link to real tasks")
+    link_detail = [f"{r['id']}: task_ids empty" if not r.get("task_ids") else f"{r['id']}: lists unknown task(s) {[x for x in r['task_ids'] if x not in tids]}"
+                   for r in items.values() if r["id"] in badlink]
+    chk("T3", not badlink, f"covered/partial items with missing tasks: {badlink}. Link each to existing task ids, or set its coverage to not_estimated or excluded: {link_detail}" if badlink else "covered items link to real tasks")
     back = [t["id"] for t in tasks for r in t.get("req_ids", [])
             if r in items and t["id"] not in items[r].get("task_ids", [])]
-    chk("T4", not back, f"task->item links not mirrored on item: {sorted(set(back))}" if back else "task and item links agree")
+    back_detail = sorted({f"{t['id']} lists {r} but {r}.task_ids lacks {t['id']}" for t in tasks for r in t.get("req_ids", [])
+                          if r in items and t["id"] not in items[r].get("task_ids", [])})
+    chk("T4", not back, f"task->item links not mirrored on item: {sorted(set(back))}. Add each task id to the item's task_ids, or remove the req_id from the task: {back_detail}" if back else "task and item links agree")
     notest = [r["id"] for r in items.values() if r.get("coverage") == "not_estimated"]
     derived["uncovered_requirement_items"] = notest
     chk("T5", True, f"{len(notest)} requirement items marked not_estimated (reported for review)")
@@ -191,7 +195,9 @@ def compute(est, hpw=None):
                         "overhead_hours": oh, "total_hours": th + oh, "reason": ap.get("reason")})
     mism = [b["type"] for b in by_type if (b["total_hours"] > 0 and b["applicability"] in ("not_applicable", "excluded"))
             or (b["total_hours"] == 0 and b["applicability"] == "in_scope")]
-    chk("A2", not mism, f"applicability contradicts hours: {mism}" if mism else "applicability consistent with hours")
+    mism_detail = [f"{b['type']}: marked {b['applicability']} but tasks or overheads give {b['total_hours']:.1f} h" if b["total_hours"] > 0
+                   else f"{b['type']}: marked in_scope but has 0 h" for b in by_type if b["type"] in mism]
+    chk("A2", not mism, f"applicability contradicts hours: {mism}. Make it match the tasks (in_scope when there are hours, not_applicable or excluded when there are none): {mism_detail}" if mism else "applicability consistent with hours")
     maint = [t["id"] for t in tasks if t.get("type") == "Maintenance"]
     chk("A3", not maint, f"Maintenance tasks in build (not allowed): {maint}" if maint else "no Maintenance tasks in build")
     contingency_h = kinds["cont"]["pert"] if "cont" in kinds else 0.0
@@ -283,7 +289,7 @@ def main():
     ap.add_argument("input")
     ap.add_argument("-o", "--out", default="estimation_derived.json")
     ap.add_argument("--previous")
-    ap.add_argument("--hpw", type=float, help="productive hours per FTE-week (default 35)")
+    ap.add_argument("--hpw", type=float, help="productive hours per FTE-week (default 40)")
     a = ap.parse_args()
     d = compute(load(a.input), a.hpw)
     if a.previous:

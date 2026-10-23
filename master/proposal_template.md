@@ -10,7 +10,7 @@ Cover Page · Version Control · 1 Executive Summary · 2 Project Objective (Pri
 
 **Adapt for the type:** an AI solution adds AI architecture, model strategy, orchestration, evaluation, guardrails and data governance; a mobile app adds mobile architecture, device compatibility, distribution and offline; a data platform adds ingestion, quality, governance, lineage; a marketing website adds information architecture, CMS, SEO and content responsibilities.
 
-**Cover page.** Write it in exactly this layout (the Word export reads it): the title, the subtitle, the lines, then `---` on its own line to end the cover. Use `[Client Organisation]` when the client's company name is unknown, and leave out the `Prepared for` line when no contact is known.
+**Cover page.** Build the best cover from the lead data: the client's company, contact name and role, city, today's date and the version, filling what is known and leaving out what is not (never invent). Write it in exactly this layout (the Word export reads it): the title, the subtitle, the lines, then `---` on its own line to end the cover. Use `[Client Organisation]` when the company name is unknown, and leave out the `Prepared for` line when no contact is known.
 
 ```
 # <Proposal title>

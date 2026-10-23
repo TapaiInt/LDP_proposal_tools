@@ -78,6 +78,9 @@ def main():
         step("raw output is immutable", not r["ok"] and "immutable" in r["error"], r)
         r = call("calc_estimate", {"run_id": run, "estimate": "estimation_pass2.json"})
         step("calc_estimate (25/25 checks, 355.6 h)", r.get("ok") and r["checks"]["passed"] == r["checks"]["total"] and abs(r["total_h"]["pert"] - 355.6) < 0.2, r)
+        r = call("save_artifact", {"run_id": run, "name": "estimator_draft_v1.json", "json_value": est})
+        r = call("promote_artifact", {"run_id": run, "source": "estimator_draft_v1.json", "name": "estimation_pass2_retry1.json"})
+        step("promote_artifact (byte copy, immutable)", r.get("ok") and r.get("name") == "estimation_pass2_retry1.json", r)
         r = call("prepare_review", {"run_id": run, "estimate": "estimation_pass2.json", "derived": "estimation_derived.json"})
         step("prepare_review", r.get("ok"), r)
         if not a.no_workbook:

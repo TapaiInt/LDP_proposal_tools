@@ -90,6 +90,78 @@
         ]
       }
     },
+    "/v1/tools/promote_artifact": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "promote_artifact",
+        "description": "Copy an existing artifact to a new name on the server, byte for byte, and record its sha256. Use it to turn the draft that passed calc_estimate into the final estimation_pass2.json / estimation_revision.json (or a _retryN name) instead of re-sending the whole JSON. For estimate names the source must be a complete estimate. The new name is created once; an existing name is never overwritten.",
+        "operationId": "promote_artifact",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run identifier"
+                  },
+                  "source": {
+                    "type": "string",
+                    "description": "Existing artifact to copy, e.g. the draft file that passed calc_estimate"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "New artifact name, e.g. estimation_pass2.json"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "run_id",
+                  "source",
+                  "name"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/v1/tools/get_artifact": {
       "post": {
         "tags": [
