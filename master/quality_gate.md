@@ -1,3 +1,5 @@
+Prompt version: 1.0 (2026-10-12) · master/quality_gate.md
+
 # Final quality gate, Review Notes and consistency checks
 
 Load this file at the start of Stage 4 (finalisation), after all artifacts exist.
@@ -37,3 +39,7 @@ Run the consistency check: in the command-line toolkit `python tools/check_consi
 | X15 | No person-hours in the client proposal (unless hours are exposed on purpose). |
 
 Fix every FAIL you can by correcting the artifact (never by editing a raw estimator file). Report what remains. WARN items (placeholder not found, hashes not verified, openpyxl missing) go in the test report.
+
+## Version history
+
+- v1.0 (2026-10-12): Review Notes spec, judgment checks, scripted check meanings

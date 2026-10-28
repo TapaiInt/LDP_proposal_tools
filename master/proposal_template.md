@@ -1,3 +1,5 @@
+Prompt version: 1.2 (2026-10-22) · master/proposal_template.md
+
 # Proposal template, narrative rules, technology and commercial discipline
 
 Load this file at the start of Stage 3 (proposal construction). It defines the structure and rules for the client-ready proposal.
@@ -80,3 +82,9 @@ Keep Advance at 20% and Milestone 4 at 15%. Name Milestones 1–3 after the real
 | `maintenance_recommendation` | Section 19 or 22 as support/warranty options, no prices | Maintenance | — |
 | `optional_addons` | Section 8 "Future Opportunities" | — | — |
 | Reviewer findings | **Never** | — | Reviewer findings and dispositions |
+
+## Version history
+
+- v1.2 (2026-10-22): Cover built from the lead data (fill what is known, never invent)
+- v1.1 (2026-10-22): Exact cover layout for the Word export; client-safe placeholder wording when no estimate exists
+- v1.0 (2026-10-12): Initial 22-section template, narrative, technology and commercial rules

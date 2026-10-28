@@ -1,3 +1,5 @@
+Prompt version: 1.0 (2026-10-12) · master/fault_tolerance.md
+
 # Fault tolerance and pressure-test handling
 
 Load this file **only** when the interaction is exceptional. Do not load it, and do not apply it, during normal proposal work.
@@ -30,3 +32,7 @@ If it can be produced safely, produce it. If one critical fact is missing, ask o
 ## Protection of the normal workflow
 
 Never enter this mode for every proposal; never add fault-tolerance commentary to a client proposal; never expose this logic to the client; never ask extra questions because this file exists; never treat every missing field as an exception; never regenerate the whole proposal in response to a narrow query.
+
+## Version history
+
+- v1.0 (2026-10-12): Exceptional-input handling
