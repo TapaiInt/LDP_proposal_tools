@@ -1,4 +1,4 @@
-Prompt version: 1.3 (2026-10-28) · master/proposal_template.md
+Prompt version: 1.4 (2026-10-28) · master/proposal_template.md
 
 # Proposal template, narrative rules, technology and commercial discipline
 
@@ -6,7 +6,7 @@ Load this file at the start of Stage 3 (proposal construction). It defines the s
 
 ## 1. Standard INT proposal structure (adapt to the opportunity type)
 
-Cover Page · Version Control · 1 Executive Summary · 2 Project Objective (Primary Objective; Current vs Future State) · 3 Our Understanding of the Client's Business Context · 4 Opportunity and Key Challenges (Business, Operational, Technology, Outcomes) · 5 Why INT · 6 INT Roles & Responsibilities · 7 Proposed Solution Overview · 8 Functional Requirements / Scope of Work (User Roles, Modules, Features, User-Specific Functionality, Workflows, Business Rules, Exceptions, Integrations, Reporting, Out of scope, Future Opportunities) · 9 Design Thoughts / User Experience · 10 Proposed Technology Stack · 11 Solution Architecture · 12 Integration Approach · 13 Security, Access & Governance · 14 Implementation Methodology · 15 Deliverables · 16 Dependencies · 17 Assumptions · 18 Project Timeline · 19 Commercial Proposal · 20 Change Management · 21 Ownership of Work · 22 Terms & Conditions.
+Cover Page · Version Control · 1 Executive Summary · 2 Project Objective (Primary Objective; Platform Goals; Business Objectives) · 3 Our Understanding of the Client's Business Context · 4 Opportunity and Key Challenges (Business, Operational, Technology, Outcomes; Current State Assessment) · 5 Why INT · 6 INT Roles & Responsibilities · 7 Proposed Solution Overview · 8 Functional Requirements / Scope of Work (User Types, Roles and Responsibilities, Modules, Features, User-Specific Functionality, Workflows, Business Rules, Exceptions, Integrations, Reporting, Out of scope, Future Opportunities) · 9 Design Thoughts / User Experience (User Journeys) · 10 Proposed Technology Stack · 11 Solution Architecture · 12 Integration Approach · 13 Security, Access & Governance (Role-Based Access Control) · 14 Implementation Methodology · 15 Deliverables · 16 Dependencies · 17 Assumptions · 18 Project Timeline · 19 Commercial Proposal · 20 Change Management · 21 Ownership of Work · 22 Terms & Conditions.
 
 **Heading format (required, so scripts can find sections):** every section is a markdown heading that starts with its number, for example `## 8. Functional Requirements / Scope of Work`. Use `##` for sections 1–22 and `###` for subsections. Keep all 22 headings even when a section is brief; if one does not apply, write one line saying why.
 
@@ -103,8 +103,42 @@ Rules for every format:
 - Never lengthen with invented content: no filler, no repeated text, no unsupported claims (see Section 4 of this module).
 - A long proposal (Marketing, Detailed) does not fit in one tool call. Save it in parts: the first call creates `Proposal_<Client>_<ShortTitle>_V<ver>.md` with the cover and sections 1–5 (`overwrite: true`), and each next call adds the next group of sections with `append: true`, in order (for example 6–11, 12–17, 18–22). Read the result of every call; if a part failed, repeat that part only, never start over. After the last part check the saved file's `total_chars` with `get_artifact` (`max_chars` 1) before `check_consistency`.
 
+## 8. Required content elements (the scripted checks X16–X20 read these exact headings and tables)
+
+**8.1 Executive Summary (Section 1): 3 to 4 paragraphs of prose.** No bullets, tables or numbers that are not in the sources. Four paragraphs normally; three when little is known (Short formats).
+1. The client's situation and the problem, from discovery.
+2. What INT proposes, in plain words: the platform, who uses it, and the system of record where there is one.
+3. How it works: the main capabilities, the integrations and the guiding principles (what stays as it is).
+4. How INT will deliver it and what the client gains, in client-safe language (no hours, prices, agents or tools).
+
+**8.2 Project Objective (Section 2):** a short `**Primary objective**` paragraph, then two subsections:
+- `### Platform Goals`: 3 to 7 bullets written `- **Label:** one sentence`, each a capability the platform will provide (what the system does).
+- `### Business Objectives`: 3 to 7 bullets in the same form, each an outcome for the client (what the client gains). Each objective must be reachable through at least one platform goal and one module in Section 8. Do not copy the goals into the objectives.
+
+**8.3 Current State Assessment (Section 4):** a `### Current State Assessment` subsection with one or two lead sentences and this table, 4 to 10 rows (4 to 6 in Short formats):
+
+| Current-state finding | Source | Proposed solution | Scope reference |
+|---|---|---|---|
+
+- **Source** is exactly `Client-stated` (from the lead or a discovery answer), `Observed` (read from a document or a public page in this run, with its URL or file named in the Review Notes) or `Assumption` (also listed in Section 17).
+- **Scope reference** is the name of the Section 8 module or subsection that delivers the solution. Every key challenge named in Section 4 has a row; every row points at real scope.
+- Never invent a finding. With no known current state, write one row `Current state to be validated in discovery | Assumption | ... | ...`. For a client with an existing public website and web tools available, crawl it and add `Observed` rows (page titles and metadata, navigation and structure, content gaps visible in the HTML); make no claim that needs a measuring tool (Core Web Vitals, rankings).
+
+**8.4 User Types, Roles and Responsibilities (Section 8):** a `### User Types, Roles and Responsibilities` subsection. With more than one kind of user, one table per kind (for example Enterprise users, Contractor users, Employee users), each `| User role | Responsibilities |`. Roles come from the sources and discovery; a role INT adds is written `<Role> (Proposed)`. End with: the final role-to-permission mapping is validated during requirement discovery.
+
+**8.5 Role-Based Access Control (Section 13):** a `### Role-Based Access Control` subsection:
+- One sentence: these are proposed permissions, to be validated in discovery.
+- A matrix `| Role | <Module 1> | <Module 2> | ... |` with one row for **every** role of 8.4 and the Section 8 modules as columns (group modules to at most 8 columns). Cells use `V` view, `C` create, `E` edit, `A` approve, `X` export, `M` manage and configure, `–` none. Put the legend under the table.
+- Bullets for: data scope (own records, own organisation, all), authentication (SSO or MFA as stated by the client, otherwise "to be confirmed"), proxy or delegation if in scope, and audit logging.
+
+**8.6 User journeys (Section 9):** one `### <Journey name>` subsection per journey, in this order: a one-sentence intro; the picture on its own line `![Caption](journey_<name>.png)`; the step table under it. Create the picture first with the `build_diagram` tool and paste the `step_table` it returns, unchanged.
+- Steps use only roles from 8.4 and modules from Section 8. 4 to 10 steps, at most one loop. A flow longer than 12 steps becomes two journeys.
+- How many journeys: Short and Short Brochure = 1 end-to-end flow; Marketing = one per key role, at most 3; Detailed = one per role, at most 5.
+- Never leave a journey as a picture alone: the table is the text version for screen readers and the checks.
+
 ## Version history
 
+- v1.4 (2026-10-28): Section 8 required content elements with exact headings and tables (summary, goals/objectives, current-state mapping table, roles, RBAC matrix, journeys with diagrams)
 - v1.3 (2026-10-28): Format profiles with page ranges (section 7); Why INT sourced from intglobal.com (years, domains, services; no Machine Learning); save long proposals in parts with append
 - v1.2 (2026-10-22): Cover built from the lead data (fill what is known, never invent)
 - v1.1 (2026-10-22): Exact cover layout for the Word export; client-safe placeholder wording when no estimate exists

@@ -795,6 +795,86 @@
         ]
       }
     },
+    "/v1/tools/build_diagram": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "build_diagram",
+        "description": "Render a user-journey or process flow as a PNG artifact in INT's proposal style. Input is a step list, one step per line: `id | Title | Description | next`, where next is a comma-separated list of ids with an optional `:label` (for example `S2:Approved, S3:Returned`). A step that points back to an earlier step is drawn as a loop. Up to 24 steps. Returns the flow as a markdown step_table to place under the picture. In the proposal, embed it with `![Caption](name.png)` on its own line; build_docx puts it in the Word file.",
+        "operationId": "build_diagram",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run identifier"
+                  },
+                  "out_name": {
+                    "type": "string",
+                    "description": "PNG artifact name, e.g. journey_approver.png"
+                  },
+                  "steps": {
+                    "type": "string",
+                    "description": "The step list, one step per line: id | Title | Description | next"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Heading drawn above the diagram"
+                  },
+                  "direction": {
+                    "type": "string",
+                    "description": "down (default) or right; use right only for short, mostly linear flows"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "run_id",
+                  "out_name",
+                  "steps"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/v1/tools/check_consistency": {
       "post": {
         "tags": [

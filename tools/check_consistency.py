@@ -72,6 +72,45 @@ def sections(md):
     return out
 
 
+def subsection(text, name):
+    """Text of the `###`/`####` subsection whose heading contains `name` (case-insensitive), up to the next heading of the same or higher level."""
+    m = re.search(r"^(#{3,4})[ \t]*[^\n]*" + re.escape(name) + r"[^\n]*$", text, re.M | re.I)
+    if not m:
+        return ""
+    lvl = len(m.group(1))
+    nxt = re.search(r"^#{1," + str(lvl) + r"}[ \t]", text[m.end():], re.M)
+    return text[m.start():m.end() + (nxt.start() if nxt else len(text) - m.end())]
+
+
+def md_tables(text):
+    """Every markdown table in `text` as a list of rows (a list of cell strings); the header row first, the separator row dropped."""
+    out, cur = [], []
+    for line in text.split("\n") + [""]:
+        if line.strip().startswith("|"):
+            cells = [c.strip().replace("\\|", "|") for c in line.strip().strip("|").split("|")]
+            if not all(re.fullmatch(r":?-{2,}:?", c) for c in cells if c):
+                cur.append(cells)
+        elif cur:
+            out.append(cur)
+            cur = []
+    return out
+
+
+def plain(s):
+    return re.sub(r"[*_`]", "", s).strip().lower()
+
+
+def paragraphs(sec_text):
+    """Prose paragraphs of a section (headings, bullets, tables and pictures are not counted)."""
+    body = "\n".join(sec_text.split("\n")[1:])
+    out = []
+    for block in re.split(r"\n\s*\n", body):
+        b = block.strip()
+        if b and not re.match(r"(#|\||[-*+]\s|\d+[.)]\s|!\[|>)", b):
+            out.append(b)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dir", required=True)
@@ -187,6 +226,73 @@ def main():
     nums = sorted(secs)
     miss = [i for i in range(1, 23) if i not in secs]
     chk("X9", not miss, f"missing section numbers: {miss}" if miss else "all 22 sections present")
+
+    # X16-X20 content elements every proposal must carry (see master/proposal_template.md section 8)
+    n16 = len(paragraphs(secs.get(1, "")))
+    chk("X16", 3 <= n16 <= 4, f"Executive Summary has {n16} paragraph(s); it must have 3 to 4")
+
+    s2 = secs.get(2, "")
+    gaps = []
+    for label in ("Platform Goals", "Business Objectives"):
+        sub = subsection(s2, label)
+        k = len(re.findall(r"^\s*[-*+]\s+\S", sub, re.M))
+        if not sub:
+            gaps.append(f"no '{label}' subsection in Section 2")
+        elif not 3 <= k <= 7:
+            gaps.append(f"'{label}' has {k} item(s); use 3 to 7")
+    chk("X17", not [g for g in gaps if g.startswith("no ")], "; ".join(gaps) if gaps else "Platform Goals and Business Objectives present")
+    if any(not g.startswith("no ") for g in gaps):
+        chk("X17b", False, "; ".join(g for g in gaps if not g.startswith("no ")), "warn")
+
+    sub4 = subsection(secs.get(4, ""), "Current State Assessment")
+    map_tab = next((t for t in md_tables(sub4) if any("proposed solution" in plain(c) for c in t[0])), None)
+    if not map_tab or len(map_tab) < 2:
+        chk("X18", False, "Section 4 needs a 'Current State Assessment' subsection with a table (Current-state finding | Source | Proposed solution | Scope reference)")
+    else:
+        head = [plain(c) for c in map_tab[0]]
+        ci = next((i for i, c in enumerate(head) if "scope" in c or "module" in c), len(head) - 1)
+        si = next((i for i, c in enumerate(head) if c == "source"), None)
+        s8m = secs.get(8, "")
+        unmapped = [r[0][:50] for r in map_tab[1:] if len(r) > ci and not covered(r[ci], s8m, 0.6)]
+        badsrc = [r[0][:40] for r in map_tab[1:] if si is not None and len(r) > si and plain(r[si]) not in ("client-stated", "observed", "assumption")]
+        chk("X18", True, f"{len(map_tab) - 1} current-state row(s) mapped to solutions")
+        if unmapped:
+            chk("X18b", False, f"rows whose scope reference is not found in Section 8: {unmapped}", "warn")
+        if badsrc:
+            chk("X18c", False, f"rows without a Source of Client-stated, Observed or Assumption: {badsrc}", "warn")
+
+    roles = []
+    for t in md_tables(subsection(secs.get(8, ""), "Roles")):
+        if re.search(r"role|user", plain(t[0][0])):
+            roles += [plain(r[0]) for r in t[1:] if r and plain(r[0])]
+    rbac = subsection(secs.get(13, ""), "Role-Based Access Control") or subsection(secs.get(13, ""), "RBAC")
+    mat = next((t for t in md_tables(rbac) if re.search(r"role", plain(t[0][0]))), None)
+    if not roles:
+        chk("X19", False, "Section 8 needs a roles subsection ('User Types, Roles and Responsibilities') with a table whose first column is the role")
+    elif not mat:
+        chk("X19", False, "Section 13 needs a 'Role-Based Access Control' subsection with a role x module matrix (first column: role)")
+    else:
+        in_mat = [plain(r[0]) for r in mat[1:] if r]
+        lost = [r for r in roles if not any(r in m or m in r for m in in_mat)]
+        chk("X19", not lost, f"roles missing from the RBAC matrix: {lost}" if lost else f"{len(roles)} role(s) all appear in the RBAC matrix")
+        if "proposed" not in rbac.lower():
+            chk("X19b", False, "the RBAC matrix is not labelled Proposed", "warn")
+
+    pics = list(re.finditer(r"^!\[(.*?)\]\(([^()\s]+)\)\s*$", prop, re.M))
+    if not pics:
+        chk("X20", False, "no user-journey diagram in the proposal", "warn")
+    else:
+        bad = []
+        for m in pics:
+            cap, fn = m.group(1).strip(), m.group(2)
+            after = [l for l in prop[m.end():].split("\n") if l.strip()][:4]
+            if not os.path.exists(os.path.join(d, os.path.basename(fn))):
+                bad.append(f"{fn}: file not found")
+            elif not cap:
+                bad.append(f"{fn}: no caption")
+            elif not any(l.strip().startswith("|") and "step" in l.lower() for l in after):
+                bad.append(f"{fn}: no step table under it")
+        chk("X20", not bad, "; ".join(bad) if bad else f"{len(pics)} diagram(s) with caption and step table", "fail")
 
     # X10 case-file hashes
     if case_p:

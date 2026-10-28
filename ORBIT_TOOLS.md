@@ -1,4 +1,4 @@
-# Orbit tool configuration — 14 tools
+# Orbit tool configuration — 15 tools
 
 Base URL: `https://ldp-proposal-tools.onrender.com`
 
@@ -152,7 +152,9 @@ Converts the client proposal markdown into a Word `.docx` in INT's proposal styl
 | `out_name`* | text | Must end `.docx`, e.g. `Proposal_Acme_Quotation_V1.0.docx` |
 | `version` | text | Shown in the page header, e.g. `V1.0`. Default: read from the cover page line `Version: V1.0` |
 
-Output: `ok`, `artifact`, `bytes`, `output` (counts of headings, tables, list items). Then call `create_download_link` for the `.docx`.
+A line `![Caption](journey_x.png)` on its own embeds that picture (a .png or .jpg stored in the same run, no folders), centred, with "Figure n: Caption" under it. A picture that is missing leaves a placeholder line and is listed in `warnings`.
+
+Output: `ok`, `artifact`, `bytes`, `output` (counts of headings, tables, list items, diagrams), `warnings` (missing diagrams). Then call `create_download_link` for the `.docx`.
 
 ## 14. promote_artifact
 Copies an existing file to a new name on the server, byte for byte, and records its sha256. This is how the estimator makes its final `estimation_pass2.json` (or `estimation_revision.json`, or a `_retryN` name) from the draft that passed `calc_estimate`, without re-sending the whole JSON. For estimate names the source must be a complete estimate; the new name is created once and never overwritten (repeating the same copy is safe).
@@ -165,23 +167,39 @@ Copies an existing file to a new name on the server, byte for byte, and records 
 
 Output: `ok`, `name`, `source`, `sha256`, `bytes`, `saved_at` (and `already_existed: true` when the same content was already there).
 
+## 15. build_diagram
+Draws a user-journey or process flow as a PNG in INT's proposal style and returns the same flow as a markdown step table. Needs the API version with `tools/build_diagram.py` and Pillow (in `api/requirements.txt`); redeploy after pulling.
+
+| Input | Type | Notes |
+|---|---|---|
+| `run_id`* | text | |
+| `out_name`* | text | File name ending `.png`, no folders, e.g. `journey_approver.png` |
+| `steps`* | text | One step per line: `id | Title | Description | next`. `next` = comma-separated ids, each with an optional `:label`, e.g. `S2 | Compliance SPOC | Reviews the decision | S3:Approved, S4:Returned`. A step that points back to an earlier id is drawn as a loop. 2 to 24 steps. |
+| `title` | text | Heading drawn above the picture |
+| `direction` | text | `down` (default) or `right`. Use `right` only for short, mostly linear flows |
+
+Output: `ok`, `artifact`, `steps_source` (`<name>.steps.txt`, saved for audit), `nodes`, `edges`, `width`, `height`, `step_table` (markdown, paste it under the picture), `next`. On a bad step list `ok` is false and `error` names the line.
+
 ---
 
 ## Which agent gets which tool
 
-| Tool | Master | Estimator | Reviewer |
-|---|---|---|---|
-| save_artifact, list_artifacts, verify_artifacts | yes | save_artifact only | no |
-| get_artifact | yes | no | **yes** (the reviewer reads `review_source.md` and `review_input.json` in pages) |
-| promote_artifact | yes (retries only) | yes | no |
-| calc_estimate | yes | yes (self-check loop) | no |
-| prepare_review, build_workbook, build_docx, check_consistency, get_module, create_download_link, hash_text | yes | no | no |
-| ensemble_select | yes (only for ensemble 3) | no | no |
+| Tool | Master | Estimator | Estimate reviewer | Proposal reviewer |
+|---|---|---|---|---|
+| save_artifact, list_artifacts, verify_artifacts | yes | save_artifact only | no | no |
+| get_artifact | yes | no | **yes** (reads `review_source.md` and `review_input.json` in pages) | **yes** (reads the proposal `.md`, `review_source.md`, `scope_summary.md`, `why_int_facts.md` in pages) |
+| promote_artifact | yes (retries only) | yes | no | no |
+| calc_estimate | yes | yes (self-check loop) | no | no |
+| prepare_review, build_workbook, build_docx, build_diagram, check_consistency, get_module, create_download_link, hash_text | yes | no | no | no |
+| ensemble_select | yes (only for ensemble 3) | no | no | no |
+
+## Third sub-agent: proposal-reviewer
+Create a sub-agent named exactly `proposal-reviewer` (the master prompt calls it by that name). Prompt = `integration/prompts/proposal_reviewer.md` from the v4 toolkit (paste the whole file). Tool: `get_artifact` only. It reads the proposal and its sources itself; the master passes names, never the text. It needs no web tools. Its reply is one JSON object (`status`, `verdict`, `summary`, `findings`); an `inputs_unavailable` reply is not a review.
 
 ## Register in this order
 1. `hash_text`, then `get_module` (smoke test)
 2. `save_artifact`, `get_artifact`, `calc_estimate`
-3. `prepare_review`, `build_workbook`, `build_docx`, `check_consistency`, `create_download_link`
+3. `prepare_review`, `build_workbook`, `build_docx`, `build_diagram`, `check_consistency`, `create_download_link`
 4. `list_artifacts`, `verify_artifacts`, `ensemble_select`
 
 ---
@@ -190,7 +208,7 @@ Output: `ok`, `name`, `source`, `sha256`, `bytes`, `saved_at` (and `already_exis
 
 This form sends **every key on every call** ("model fills" ticked = the model may overwrite the default). So an optional field you add is always sent. Add only the keys listed here, with exactly these defaults. Anything not listed keeps the server default.
 
-## Fields that are the same for all 12 tools
+## Fields that are the same for all 15 tools
 | Field | Value |
 |---|---|
 | Tool name | the exact name below (the prompts call these names) |
@@ -220,6 +238,7 @@ This form sends **every key on every call** ("model fills" ticked = the model ma
 | `check_consistency` | `run_id` ✔, `forbid` = "" ✔, `estimate` = "" ✔ (final estimate file name), `derived` = "estimation_derived.json" ✔ |
 | `create_download_link` | `run_id` ✔, `name` ✔ |
 | `build_docx` | `run_id` ✔, `source` ✔, `out_name` ✔, `version` = "" ✔ |
+| `build_diagram` | `run_id` ✔, `out_name` ✔, `steps` ✔, `title` = "" ✔, `direction` = "down" ✔ |
 | `promote_artifact` | `run_id` ✔, `source` ✔, `name` ✔ |
 | `ensemble_select` | skip for now: it needs a list (`runs`), and a text-only form cannot send one. Not needed for ensemble 1 or the single-agent edition |
 
@@ -251,4 +270,5 @@ If the agent sees `proposal_hash_text` instead of `hash_text`, the prompts' tool
 | `check_consistency` | Run scripted consistency checks across the proposal, review notes, workbook and estimate files in the run. |
 | `create_download_link` | Create a time-limited download link for a stored file, usable without an API key. |
 | `promote_artifact` | Copy an existing file to a new name on the server, byte for byte (for example the calculator-checked draft to estimation_pass2.json). Never re-send a large JSON to create the final file. |
+| `build_diagram` | Draw a user-journey or process flow as a PNG from a step list (one step per line: id, Title, Description, next ids with optional :label). Returns a step table to place under the picture. Call before writing the proposal text. |
 | `build_docx` | Convert the client proposal markdown (Proposal_*.md) into a Word .docx in INT's proposal style. Call after the proposal text is final and the consistency checks have run. |

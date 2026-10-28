@@ -8,6 +8,7 @@ Input conventions (the same markdown the master writes and the scripted checks r
     * everything before the first `---` line (or, without one, before the first `##` heading) is the cover page: `# Title`, a `**subtitle**` line, plain lines, `Presented by INT.`, `*tagline*`
     * `## 1. Section` becomes Heading 1, `###` Heading 2, `####` Heading 3
     * `- item` / `* item` bullets (indent two spaces per level), `1. item` numbered items, `| a | b |` tables, `> quote`, ``` code fences
+    * `![Caption](diagram.png)` on its own line embeds that picture (a .png/.jpg next to the markdown file, no folders) centred, with the caption below as "Figure n: Caption"; a missing picture leaves a visible placeholder line and a WARNING line in the output
     * **bold**, *italic* and `code` inside text; the first `---` is a page break (end of the cover), later ones are ignored
 Layout: A4, Calibri 10.5, navy headings (1F3864), navy table headers with white text, running header with the title and version,
 footer "Presented by INT | Confidential | Page N".
@@ -16,6 +17,8 @@ import argparse
 import os
 import re
 import sys
+
+IMAGE_LINE = re.compile(r"!\[(.*?)\]\(([^()\s]+)\)")
 
 try:
     from docx import Document
@@ -138,7 +141,7 @@ def add_table(doc, rows):
     return table
 
 
-def build(md_text, version="", out_stats=None):
+def build(md_text, version="", out_stats=None, base_dir=None):
     lines = md_text.replace("\r\n", "\n").split("\n")
     title = next((l[2:].strip() for l in lines if l.startswith("# ")), "Proposal")
     if not version:
@@ -150,7 +153,7 @@ def build(md_text, version="", out_stats=None):
 
     i, n = 0, len(lines)
     in_cover, seen_rule, cover_started = True, False, False
-    stats = {"headings": 0, "tables": 0, "bullets": 0, "paragraphs": 0}
+    stats = {"headings": 0, "tables": 0, "bullets": 0, "paragraphs": 0, "images": 0, "missing_images": []}
     while i < n:
         line = lines[i]
         stripped = line.strip()
@@ -206,6 +209,27 @@ def build(md_text, version="", out_stats=None):
             run = par.add_run("\n".join(block))
             run.font.name, run.font.size = "Consolas", Pt(9)
             continue
+        mi = IMAGE_LINE.fullmatch(stripped)
+        if mi:
+            caption, fname = mi.group(1).strip(), mi.group(2)
+            path = os.path.join(base_dir, fname) if base_dir and os.path.basename(fname) == fname and fname.lower().endswith((".png", ".jpg", ".jpeg")) else None
+            if path and os.path.isfile(path):
+                stats["images"] += 1
+                pic = doc.add_paragraph()
+                pic.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                pic.paragraph_format.keep_with_next = True
+                pic.add_run().add_picture(path, width=Cm(16.0))
+                if caption:
+                    cp = doc.add_paragraph()
+                    cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    add_runs(cp, f"Figure {stats['images']}: {caption}", size=9.5, italic=True, color=RGBColor(0x59, 0x59, 0x59))
+            else:
+                stats["missing_images"].append(fname)
+                ph = doc.add_paragraph()
+                ph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                add_runs(ph, f"[Diagram not available: {caption or fname}]", italic=True, color=RGBColor(0x59, 0x59, 0x59))
+            i += 1
+            continue
         if stripped.startswith("|") and i + 1 < n and is_table_sep(lines[i + 1]):
             rows = [split_row(stripped)]
             i += 2
@@ -259,9 +283,11 @@ def main():
     with open(a.markdown, encoding="utf-8") as f:
         text = f.read()
     stats = {}
-    doc = build(text, a.version, stats)
+    doc = build(text, a.version, stats, base_dir=os.path.dirname(os.path.abspath(a.markdown)))
     doc.save(a.out)
-    print(f"wrote {a.out}: {stats['headings']} headings, {stats['tables']} tables, {stats['bullets']} list items, {stats['paragraphs']} paragraphs")
+    print(f"wrote {a.out}: {stats['headings']} headings, {stats['tables']} tables, {stats['bullets']} list items, {stats['paragraphs']} paragraphs, {stats['images']} diagrams")
+    for name in stats["missing_images"]:
+        print(f"WARNING missing diagram: {name}")
 
 
 if __name__ == "__main__":

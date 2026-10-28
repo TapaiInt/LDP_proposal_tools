@@ -380,7 +380,32 @@ def build_docx(run_id, source, out_name, version=""):
     if code != 0:
         raise ToolError(f"build_docx failed: {se or so}")
     _register(run_id, out_name)
-    return {"ok": True, "artifact": out_name, "bytes": os.path.getsize(_path(run_id, out_name)), "output": so}
+    warnings = [l[len("WARNING "):] for l in so.splitlines() if l.startswith("WARNING ")]
+    return {"ok": True, "artifact": out_name, "bytes": os.path.getsize(_path(run_id, out_name)), "output": so, "warnings": warnings}
+
+
+def build_diagram(run_id, out_name, steps, title="", direction="down"):
+    """Render a user-journey / process flow as a PNG artifact from a step list; returns the same flow as a markdown step table."""
+    if not out_name.lower().endswith(".png") or "/" in out_name or "\\" in out_name:
+        raise ToolError("out_name must be a file name ending with .png, for example journey_approver.png")
+    if not str(steps).strip():
+        raise ToolError("steps is empty: one step per line, `id | Title | Description | next` (for example `S1 | Approver | Reviews the request | S2`)")
+    src = out_name[:-4] + ".steps.txt"
+    _write_text(run_id, src, str(steps), overwrite=True)
+    _register(run_id, src)
+    args = [_path(run_id, src, True), "-o", _path(run_id, out_name)]
+    if title:
+        args += ["--title", title]
+    if direction:
+        args += ["--direction", direction]
+    code, so, se = _py("build_diagram.py", *args)
+    if code != 0:
+        raise ToolError(se or so or "build_diagram failed")
+    _register(run_id, out_name)
+    info = json.loads(so.splitlines()[-1])
+    return {"ok": True, "artifact": out_name, "steps_source": src, "nodes": info["nodes"], "edges": info["edges"],
+            "width": info["width"], "height": info["height"], "step_table": info["table"],
+            "next": f"Put `![<caption>]({out_name})` on its own line in the proposal and the step_table right under it"}
 
 
 def check_consistency(run_id, forbid="", expose_hours=False, estimate="", derived=""):
@@ -462,6 +487,10 @@ TOOLS = {
     "build_docx": (build_docx, "Convert the client proposal (the Proposal_*.md artifact) into a Word .docx in INT's proposal style: cover page, numbered headings, tables, running header and footer. Call it after the proposal text is final and the consistency checks have run.",
                     _p(run_id=S("Run identifier", True), source=S("Proposal markdown artifact name, e.g. Proposal_Client_Title_V1.0.md", True),
                        out_name=S("Word artifact name ending in .docx, e.g. Proposal_Client_Title_V1.0.docx", True), version=S("Version shown in the page header, e.g. V1.0 (default: read from the cover page)"))),
+    "build_diagram": (build_diagram, "Render a user-journey or process flow as a PNG artifact in INT's proposal style. Input is a step list, one step per line: `id | Title | Description | next`, where next is a comma-separated list of ids with an optional `:label` (for example `S2:Approved, S3:Returned`). A step that points back to an earlier step is drawn as a loop. Up to 24 steps. Returns the flow as a markdown step_table to place under the picture. In the proposal, embed it with `![Caption](name.png)` on its own line; build_docx puts it in the Word file.",
+                      _p(run_id=S("Run identifier", True), out_name=S("PNG artifact name, e.g. journey_approver.png", True),
+                         steps=S("The step list, one step per line: id | Title | Description | next", True), title=S("Heading drawn above the diagram"),
+                         direction=S("down (default) or right; use right only for short, mostly linear flows"))),
     "check_consistency": (check_consistency, "Run the scripted consistency checks over the run's artifacts. Needs Proposal_*.md, Presales_Review_Notes_*.md, Estimation_*.xlsx, the estimate and the derived artifact saved in the run. Returns failures and warnings.",
                           _p(run_id=S("Run identifier", True), forbid=S("Comma-separated names of other clients that must not appear"), expose_hours={"type": "boolean", "_req": False},
                              estimate=S("Final estimate artifact name (default: newest complete revision, retry or pass 2)"), derived=S("Derived artifact name (default estimation_derived.json)"))),
