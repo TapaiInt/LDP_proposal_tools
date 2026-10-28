@@ -43,6 +43,10 @@
                   "overwrite": {
                     "type": "boolean",
                     "description": "Replace an existing non-immutable artifact"
+                  },
+                  "append": {
+                    "type": "boolean",
+                    "description": "Add content to the end of the artifact (created when missing) instead of replacing it; for saving a long document in parts"
                   }
                 },
                 "additionalProperties": false,

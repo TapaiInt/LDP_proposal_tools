@@ -141,11 +141,24 @@ def _py(script, *args):
 
 
 # ------------------------------------------------------------------ tools
-def save_artifact(run_id, name, content=None, json_value=None, overwrite=False):
-    """Store text or JSON under a name and record its sha256. Raw agent outputs are immutable."""
+def save_artifact(run_id, name, content=None, json_value=None, overwrite=False, append=False):
+    """Store text or JSON under a name and record its sha256. Raw agent outputs are immutable.
+
+    append=true adds `content` to the end of an existing text artifact (created when missing), so a long document
+    (a 30-45 page proposal) can be saved in several calls instead of one oversized message."""
     if (content is None) == (json_value is None):
         raise ToolError("provide exactly one of content (string) or json_value (object)")
     text = content if content is not None else json.dumps(json_value, ensure_ascii=False, indent=2)
+    if append:
+        if content is None:
+            raise ToolError("append works with content (text), not json_value")
+        if _immutable(name):
+            raise ToolError(f"{name} is a raw agent output and is immutable; append is not allowed")
+        p = _path(run_id, name)
+        if os.path.exists(p):
+            with open(p, encoding="utf-8", newline="") as f:
+                text = f.read() + text
+        overwrite = True
     _write_text(run_id, name, text, overwrite)
     info = _register(run_id, name)
     return {"name": name, **info}
@@ -421,7 +434,8 @@ TOOLS = {
     "save_artifact": (save_artifact, "Store text or a JSON object as a named artifact in the run's folder and record its sha256. Raw agent outputs (estimation_pass*, estimation_revision*, reviewer_findings*, scope_summary*) are immutable. Use this once for each sub-agent reply, then refer to it by name.",
                       _p(run_id=S("Run identifier, e.g. client-date", True), name=S("Artifact name, e.g. estimation_pass2.json", True),
                          content=S("Text to store (exactly one of content or json_value)"), json_value={"type": "object", "description": "JSON object to store", "_req": False},
-                         overwrite={"type": "boolean", "description": "Replace an existing non-immutable artifact", "_req": False})),
+                         overwrite={"type": "boolean", "description": "Replace an existing non-immutable artifact", "_req": False},
+                         append={"type": "boolean", "description": "Add content to the end of the artifact (created when missing) instead of replacing it; for saving a long document in parts", "_req": False})),
     "promote_artifact": (promote_artifact, "Copy an existing artifact to a new name on the server, byte for byte, and record its sha256. Use it to turn the draft that passed calc_estimate into the final estimation_pass2.json / estimation_revision.json (or a _retryN name) instead of re-sending the whole JSON. For estimate names the source must be a complete estimate. The new name is created once; an existing name is never overwritten.",
                          _p(run_id=S("Run identifier", True), source=S("Existing artifact to copy, e.g. the draft file that passed calc_estimate", True),
                             name=S("New artifact name, e.g. estimation_pass2.json", True))),

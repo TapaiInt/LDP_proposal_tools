@@ -27,8 +27,9 @@ Store text or JSON under a name; records its sha256. Names starting `estimation_
 | `content` | text | The file text. For JSON, send the JSON as a string. **Exactly one of `content` / `json_value`.** |
 | `json_value` | object | Only if Orbit has an object type. Do not send it together with `content`. |
 | `overwrite` | boolean | Default false. Ignored for immutable names. |
+| `append` | boolean | Default false. true adds `content` to the end of the artifact (created when missing): used to save a long proposal (Marketing, Detailed) in parts. Not allowed for immutable names or `json_value`. |
 
-Orbit tip: expose only `run_id`, `name`, `content`, `overwrite`. Sending an empty `content` together with `json_value` fails.
+Orbit tip: expose only `run_id`, `name`, `content`, `overwrite`, `append`. Sending an empty `content` together with `json_value` fails.
 
 Output: `ok`, `name`, `sha256`, `bytes`, `saved_at`.
 
@@ -209,7 +210,7 @@ This form sends **every key on every call** ("model fills" ticked = the model ma
 |---|---|
 | `hash_text` | `content` = "" ✔ |
 | `get_module` | `name` = "quality_gate" ✔ |
-| `save_artifact` | `run_id` ✔, `name` ✔, `content` ✔, `overwrite` = false ✔ (see "Typed values") |
+| `save_artifact` | `run_id` ✔, `name` ✔, `content` ✔, `overwrite` = false ✔, `append` = false ✔ (new: add it to the form; see "Typed values") |
 | `get_artifact` | `run_id` ✔, `name` ✔ |
 | `list_artifacts` | `run_id` ✔ |
 | `verify_artifacts` | `run_id` ✔ |

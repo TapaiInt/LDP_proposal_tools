@@ -1,4 +1,4 @@
-Prompt version: 1.2 (2026-10-22) · master/proposal_template.md
+Prompt version: 1.3 (2026-10-28) · master/proposal_template.md
 
 # Proposal template, narrative rules, technology and commercial discipline
 
@@ -33,7 +33,9 @@ Sales contact: [Sales contact — to be inserted]
 
 **Version Control** (`## Version Control`, a table) starts at V1.0 and records the reason for each new version (for example "Scope revised after clarification"). Do not add an "End of proposal" line.
 
-**INT credentials (Section 5) and past work:** only from the provided input; otherwise write `[INT credentials — insert from approved collateral]`. Never claim unsupported experience, certifications or case studies.
+**INT credentials (Section 5 "Why INT") and past work.** Section 5 states three things about INT, taken from `why_int_facts.md` (the master saves it after reading `https://intglobal.com/` with web crawl or web search): **years** (since which year, or the number of years the site states), **domains** (the industries INT serves) and **services** INT offers. Use the site's own wording; add nothing the pages do not state. **Do not mention Machine Learning (or ML)** in Section 5: leave it out of the services and domains even when the site lists it, and make no machine-learning capability claim there. A fact that could not be fetched stays as `[INT credentials — insert from approved collateral]`. Past work, case studies, certifications, awards and client names come only from the provided input; never claim unsupported experience.
+
+Section 5 length by format (§7): Short = one short paragraph and three bullets (years, domains, services); Marketing and Detailed = a fuller narrative that ties INT's domains and services to this client's context, still limited to those three facts.
 
 ## 2. Narrative
 
@@ -83,8 +85,27 @@ Keep Advance at 20% and Milestone 4 at 15%. Name Milestones 1–3 after the real
 | `optional_addons` | Section 8 "Future Opportunities" | — | — |
 | Reviewer findings | **Never** | — | Reviewer findings and dispositions |
 
+## 7. Proposal format: length and depth by profile
+
+The master asks two questions in discovery and stores the answers as `proposal_profile`: **Is this an enterprise client?** and **which format**. The options depend on the first answer.
+
+| Enterprise client | Format | Pages | What changes |
+|---|---|---|---|
+| Yes | Short Brochure | 15–20 | Crisp and visual: short paragraphs, bullets and tables, one idea per block. Sections 9–15 are a half page each. |
+| Yes | Marketing | 15–25 | Persuasive, outcome-led narrative: fuller Sections 1–5 (context, challenges, Why INT), tighter technical sections. |
+| Yes | Detailed | 30–45 | Full depth in every section. Section 9 (Design Thoughts / User Experience) and Section 11 (Solution Architecture) set out the design approach we will follow to design the application: design principles, user journeys, key screens or components, design system, review and sign-off steps. Sections 12–15 in full (integration approach, security and governance, methodology, deliverables). |
+| No | Short | 15–20 | As Short Brochure. |
+| No | Marketing | 30–50 | As Marketing, with a fuller narrative and more depth in Sections 7–9 and 14. |
+
+Rules for every format:
+- All 22 section headings stay (scripts check them). The format changes depth, not structure. A section that does not apply still gets its one line.
+- Aim at about 350 words per page, counting tables, the cover and Version Control. Page ranges are targets, not promises: the Word export does not count pages. Never pad to reach a range and never cut required scope to fit one; state the format and the estimated page count in the Review Notes.
+- Never lengthen with invented content: no filler, no repeated text, no unsupported claims (see Section 4 of this module).
+- A long proposal (Marketing, Detailed) does not fit in one tool call. Save it in parts: the first call creates `Proposal_<Client>_<ShortTitle>_V<ver>.md` with the cover and sections 1–5 (`overwrite: true`), and each next call adds the next group of sections with `append: true`, in order (for example 6–11, 12–17, 18–22). Read the result of every call; if a part failed, repeat that part only, never start over. After the last part check the saved file's `total_chars` with `get_artifact` (`max_chars` 1) before `check_consistency`.
+
 ## Version history
 
+- v1.3 (2026-10-28): Format profiles with page ranges (section 7); Why INT sourced from intglobal.com (years, domains, services; no Machine Learning); save long proposals in parts with append
 - v1.2 (2026-10-22): Cover built from the lead data (fill what is known, never invent)
 - v1.1 (2026-10-22): Exact cover layout for the Word export; client-safe placeholder wording when no estimate exists
 - v1.0 (2026-10-12): Initial 22-section template, narrative, technology and commercial rules
