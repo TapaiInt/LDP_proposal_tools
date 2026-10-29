@@ -1,4 +1,4 @@
-Prompt version: 1.4 (2026-10-28) · master/proposal_template.md
+Prompt version: 1.5 (2026-10-29) · master/proposal_template.md
 
 # Proposal template, narrative rules, technology and commercial discipline
 
@@ -103,7 +103,7 @@ Rules for every format:
 - Never lengthen with invented content: no filler, no repeated text, no unsupported claims (see Section 4 of this module).
 - A long proposal (Marketing, Detailed) does not fit in one tool call. Save it in parts: the first call creates `Proposal_<Client>_<ShortTitle>_V<ver>.md` with the cover and sections 1–5 (`overwrite: true`), and each next call adds the next group of sections with `append: true`, in order (for example 6–11, 12–17, 18–22). Read the result of every call; if a part failed, repeat that part only, never start over. After the last part check the saved file's `total_chars` with `get_artifact` (`max_chars` 1) before `check_consistency`.
 
-## 8. Required content elements (the scripted checks X16–X20 read these exact headings and tables)
+## 8. Required content elements (the scripted checks X16–X21 read these exact headings, tables and pictures)
 
 **8.1 Executive Summary (Section 1): 3 to 4 paragraphs of prose.** No bullets, tables or numbers that are not in the sources. Four paragraphs normally; three when little is known (Short formats).
 1. The client's situation and the problem, from discovery.
@@ -131,13 +131,23 @@ Rules for every format:
 - A matrix `| Role | <Module 1> | <Module 2> | ... |` with one row for **every** role of 8.4 and the Section 8 modules as columns (group modules to at most 8 columns). Cells use `V` view, `C` create, `E` edit, `A` approve, `X` export, `M` manage and configure, `–` none. Put the legend under the table.
 - Bullets for: data scope (own records, own organisation, all), authentication (SSO or MFA as stated by the client, otherwise "to be confirmed"), proxy or delegation if in scope, and audit logging.
 
-**8.6 User journeys (Section 9):** one `### <Journey name>` subsection per journey, in this order: a one-sentence intro; the picture on its own line `![Caption](journey_<name>.png)`; the step table under it. Create the picture first with the `build_diagram` tool and paste the `step_table` it returns, unchanged.
-- Steps use only roles from 8.4 and modules from Section 8. 4 to 10 steps, at most one loop. A flow longer than 12 steps becomes two journeys.
+**8.6 User journeys (Section 9):** one `### <Journey name>` subsection per journey, in this order: a one-sentence intro; the picture on its own line `![Caption](journey_<name>.png)`; the step table under it. Create the picture first with `render_diagram` (`kind: journey`) and paste the `step_table` it returns, unchanged.
+- The journey is drawn as **swimlanes**: one lane per role, so the second field of each step is the **role** (from 8.4, exactly as written there) and the third is the action in a few words ("Reviews the request", not "Review"). At most 6 roles per journey. An end step may carry an outcome instead of a role ("Closed", "Approved"); it is drawn in the lane of the step before it.
+- Steps use only modules from Section 8. 4 to 10 steps, at most one loop back (rework, rejection). A step with two or more exits is a decision: label every exit (`S4:Approved, S2:Returned`). A flow longer than 12 steps becomes two journeys.
 - How many journeys: Short and Short Brochure = 1 end-to-end flow; Marketing = one per key role, at most 3; Detailed = one per role, at most 5.
 - Never leave a journey as a picture alone: the table is the text version for screen readers and the checks.
 
+**8.7 Solution architecture diagram (Section 11), every format:** right after the first paragraph of Section 11, the picture on its own line `![Solution architecture](architecture.png)`, created with `render_diagram` (`kind: architecture`). Then the text explains each layer.
+- Layers, top to bottom, using only those that apply: `Users & channels` (the user types of 8.4 and their channels: web, mobile, admin), `Presentation` (front end, API gateway), `Application services` (one box per Section 8 module or group of modules), `Data` (databases, document or file storage, search, analytics), `Platform & security` (hosting, identity and SSO, RBAC, monitoring, backup). An AI solution adds an `AI services` layer (models, orchestration, guardrails) above Data.
+- `integrations`: only the systems in Section 12, each with what flows ("Employee master, read"); `integration_note` names the integration style in one line.
+- Each box: `name` of at most 4 words, `detail` of a few words, and `tag` = the Section 10 classification (`Client-Mandated`, `Existing`, `INT Recommended`, `To Be Confirmed`); leave `tag` empty for a logical component with no technology choice. 3 to 6 boxes per layer.
+- Nothing in the picture that the text does not describe, and no product name that Section 10 does not classify (check X21).
+
+**8.8 Integration sequence (Section 12), Marketing and Detailed only, when there are two or more integrations:** one picture `![Integration flow](integration_sequence.png)` from `render_diagram` (`kind: mermaid`) with a `sequenceDiagram`: the platform and each Section 12 system as participants, one arrow per data exchange, in business words ("Separation event", "Pending dues"). No field lists, no endpoints. If Mermaid reports a parse error, fix the line it names once; otherwise leave the picture out (the Section 12 table still describes the flows).
+
 ## Version history
 
+- v1.5 (2026-10-29): Diagrams via render_diagram (headless browser): swimlane journeys, required architecture diagram in Section 11, optional Mermaid integration sequence; check X21
 - v1.4 (2026-10-28): Section 8 required content elements with exact headings and tables (summary, goals/objectives, current-state mapping table, roles, RBAC matrix, journeys with diagrams)
 - v1.3 (2026-10-28): Format profiles with page ranges (section 7); Why INT sourced from intglobal.com (years, domains, services; no Machine Learning); save long proposals in parts with append
 - v1.2 (2026-10-22): Cover built from the lead data (fill what is known, never invent)

@@ -1,4 +1,4 @@
-Prompt version: 1.1 (2026-10-28) · master/quality_gate.md
+Prompt version: 1.2 (2026-10-29) · master/quality_gate.md
 
 # Final quality gate, Review Notes and consistency checks
 
@@ -42,11 +42,13 @@ Run the consistency check: in the command-line toolkit `python tools/check_consi
 | X17 | Section 2 has `Platform Goals` and `Business Objectives` subsections (X17b WARN: not 3 to 7 items). |
 | X18 | Section 4 has a `Current State Assessment` table with rows (X18b WARN: a scope reference not found in Section 8; X18c WARN: a Source other than Client-stated, Observed or Assumption). |
 | X19 | Section 8 lists roles and Section 13 has a role x module matrix that contains every one of them (X19b WARN: matrix not labelled Proposed). |
-| X20 | Every `![caption](file.png)` has an existing file, a caption and a step table under it (WARN when the proposal has no diagram at all). |
+| X20 | Every `![caption](file.png)` has an existing file and a caption; every journey picture in Section 9 has its step table under it (WARN when Section 9 has no journey diagram). |
+| X21 | WARN: Section 11 has no architecture diagram, or a component in `architecture.arch.json` is not described anywhere in Sections 7–13. |
 
 Fix every FAIL you can by correcting the artifact (never by editing a raw estimator file). Report what remains. WARN items (placeholder not found, hashes not verified, openpyxl missing) go in the test report.
 
 ## Version history
 
+- v1.2 (2026-10-29): Diagrams via render_diagram (headless browser): swimlane journeys, required architecture diagram in Section 11, optional Mermaid integration sequence; check X21
 - v1.1 (2026-10-28): Review Notes list proposal-reviewer findings, format, INT/current-state sources, journey and access assumptions; checks X16-X20
 - v1.0 (2026-10-12): Review Notes spec, judgment checks, scripted check meanings

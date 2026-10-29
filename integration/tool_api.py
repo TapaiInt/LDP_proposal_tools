@@ -134,9 +134,12 @@ def _write_text(run_id, name, text, overwrite):
     return p
 
 
-def _py(script, *args):
-    p = subprocess.run([sys.executable, os.path.join(TOOLS_DIR, script), *map(str, args)],
-                       capture_output=True, text=True, encoding="utf-8", cwd=TOOLS_DIR, env=dict(os.environ, PYTHONIOENCODING="utf-8"))
+def _py(script, *args, timeout=None):
+    try:
+        p = subprocess.run([sys.executable, os.path.join(TOOLS_DIR, script), *map(str, args)], timeout=timeout,
+                           capture_output=True, text=True, encoding="utf-8", cwd=TOOLS_DIR, env=dict(os.environ, PYTHONIOENCODING="utf-8"))
+    except subprocess.TimeoutExpired:
+        return 3, "", f"renderer unavailable: {script} did not finish within {timeout} s"
     return p.returncode, p.stdout.strip(), p.stderr.strip()
 
 
@@ -408,6 +411,52 @@ def build_diagram(run_id, out_name, steps, title="", direction="down"):
             "next": f"Put `![<caption>]({out_name})` on its own line in the proposal and the step_table right under it"}
 
 
+DIAGRAM_KINDS = {"architecture": ".arch.json", "journey": ".steps.txt", "mermaid": ".mmd.txt"}
+
+
+def render_diagram(run_id, out_name, kind, spec, title="", subtitle=""):
+    """Render an architecture, journey (swimlane) or Mermaid diagram as a PNG artifact through a headless browser.
+
+    A journey falls back to the plain build_diagram picture when the browser is not available (the reply says so)."""
+    if kind not in DIAGRAM_KINDS:
+        raise ToolError("kind must be architecture, journey or mermaid")
+    if not out_name.lower().endswith(".png") or "/" in out_name or "\\" in out_name:
+        raise ToolError("out_name must be a file name ending with .png, for example architecture.png or journey_approver.png")
+    if isinstance(spec, (dict, list)):
+        spec = json.dumps(spec, ensure_ascii=False)
+    if not str(spec or "").strip():
+        raise ToolError({"architecture": "spec is empty: a JSON object with `layers` (each with name and items) and optional `integrations`",
+                         "journey": "spec is empty: one step per line, `id | Role | Action | next`",
+                         "mermaid": "spec is empty: Mermaid source, for example `sequenceDiagram` ..."}[kind])
+    src = out_name[:-4] + DIAGRAM_KINDS[kind]
+    _write_text(run_id, src, str(spec), overwrite=True)
+    _register(run_id, src)
+    args = [_path(run_id, src, True), "-o", _path(run_id, out_name), "--kind", kind]
+    if title:
+        args += ["--title", title]
+    if subtitle:
+        args += ["--subtitle", subtitle]
+    code, so, se = _py("render_diagram.py", *args, timeout=150)
+    if code == 3 and kind == "journey":
+        r = build_diagram(run_id, out_name, spec, title)
+        r["renderer"] = "fallback"
+        r["warnings"] = [f"swimlane renderer unavailable ({se}); drew the plain journey picture instead. Record it as a Low defect."]
+        return r
+    if code == 3:
+        raise ToolError(f"{se}. Record a defect and continue without this picture (keep the text that explains it)")
+    if code != 0:
+        raise ToolError(se or so or "render_diagram failed")
+    _register(run_id, out_name)
+    info = json.loads(so.splitlines()[-1])
+    out = {"ok": True, "artifact": out_name, "kind": kind, "spec_source": src, "renderer": "browser",
+           "width": info["width"], "height": info["height"], "warnings": info.get("warnings", []),
+           "next": f"Put `![<caption>]({out_name})` on its own line in the proposal"}
+    if kind == "journey":
+        out.update(nodes=info["nodes"], edges=info["edges"], lanes=info["lanes"], step_table=info["table"])
+        out["next"] += " and the step_table right under it"
+    return out
+
+
 def check_consistency(run_id, forbid="", expose_hours=False, estimate="", derived=""):
     """Run the scripted X-checks over the run's artifacts (Proposal_*.md, Presales_Review_Notes_*.md, Estimation_*.xlsx, ...)."""
     args = ["--dir", _run_dir(run_id)]
@@ -491,6 +540,11 @@ TOOLS = {
                       _p(run_id=S("Run identifier", True), out_name=S("PNG artifact name, e.g. journey_approver.png", True),
                          steps=S("The step list, one step per line: id | Title | Description | next", True), title=S("Heading drawn above the diagram"),
                          direction=S("down (default) or right; use right only for short, mostly linear flows"))),
+    "render_diagram": (render_diagram, "Render a proposal diagram as a PNG artifact in INT's style through a headless browser. kind=architecture: spec is JSON {\"layers\": [{\"name\": \"Users & channels\", \"items\": [{\"name\": \"Employee portal\", \"detail\": \"Responsive web\", \"tag\": \"INT Recommended\"}]}], \"integrations\": [{\"name\": \"SAP\", \"detail\": \"Employee master\", \"tag\": \"Existing\"}], \"integration_note\": \"...\"} with 2-8 layers top (users) to bottom (platform), 1-8 items each, tag Client-Mandated | Existing | INT Recommended | To Be Confirmed. kind=journey: spec is a step list, one step per line `id | Role | Action | next` (next = ids with optional :label); each role becomes a swimlane (max 6), steps with 2+ exits get a decision gateway, loops back are dashed; returns step_table. kind=mermaid: spec is Mermaid source (sequenceDiagram, gantt, flowchart, stateDiagram). Embed with `![Caption](name.png)` on its own line; build_docx puts it in the Word file.",
+                       _p(run_id=S("Run identifier", True), out_name=S("PNG artifact name, e.g. architecture.png, journey_approver.png", True),
+                          kind=S("Diagram kind", True, enum=["architecture", "journey", "mermaid"]),
+                          spec={"type": ["string", "object"], "description": "architecture: JSON object (or its text); journey: step list text; mermaid: Mermaid source text", "_req": True},
+                          title=S("Heading drawn above the diagram"), subtitle=S("One line under the heading, e.g. 'Proposed, validated in discovery'"))),
     "check_consistency": (check_consistency, "Run the scripted consistency checks over the run's artifacts. Needs Proposal_*.md, Presales_Review_Notes_*.md, Estimation_*.xlsx, the estimate and the derived artifact saved in the run. Returns failures and warnings.",
                           _p(run_id=S("Run identifier", True), forbid=S("Comma-separated names of other clients that must not appear"), expose_hours={"type": "boolean", "_req": False},
                              estimate=S("Final estimate artifact name (default: newest complete revision, retry or pass 2)"), derived=S("Derived artifact name (default estimation_derived.json)"))),

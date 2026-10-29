@@ -875,6 +875,99 @@
         ]
       }
     },
+    "/v1/tools/render_diagram": {
+      "post": {
+        "tags": [
+          "tools"
+        ],
+        "summary": "render_diagram",
+        "description": "Render a proposal diagram as a PNG artifact in INT's style through a headless browser. kind=architecture: spec is JSON {\"layers\": [{\"name\": \"Users & channels\", \"items\": [{\"name\": \"Employee portal\", \"detail\": \"Responsive web\", \"tag\": \"INT Recommended\"}]}], \"integrations\": [{\"name\": \"SAP\", \"detail\": \"Employee master\", \"tag\": \"Existing\"}], \"integration_note\": \"...\"} with 2-8 layers top (users) to bottom (platform), 1-8 items each, tag Client-Mandated | Existing | INT Recommended | To Be Confirmed. kind=journey: spec is a step list, one step per line `id | Role | Action | next` (next = ids with optional :label); each role becomes a swimlane (max 6), steps with 2+ exits get a decision gateway, loops back are dashed; returns step_table. kind=mermaid: spec is Mermaid source (sequenceDiagram, gantt, flowchart, stateDiagram). Embed with `![Caption](name.png)` on its own line; build_docx puts it in the Word file.",
+        "operationId": "render_diagram",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "description": "Run identifier"
+                  },
+                  "out_name": {
+                    "type": "string",
+                    "description": "PNG artifact name, e.g. architecture.png, journey_approver.png"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "architecture",
+                      "journey",
+                      "mermaid"
+                    ],
+                    "description": "Diagram kind"
+                  },
+                  "spec": {
+                    "type": [
+                      "string",
+                      "object"
+                    ],
+                    "description": "architecture: JSON object (or its text); journey: step list text; mermaid: Mermaid source text"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Heading drawn above the diagram"
+                  },
+                  "subtitle": {
+                    "type": "string",
+                    "description": "One line under the heading, e.g. 'Proposed, validated in discovery'"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "run_id",
+                  "out_name",
+                  "kind",
+                  "spec"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result. Always 200; check `ok`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          },
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/v1/tools/check_consistency": {
       "post": {
         "tags": [

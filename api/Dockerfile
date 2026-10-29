@@ -3,11 +3,17 @@ FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    ARTIFACT_ROOT=/data/artifacts
+    ARTIFACT_ROOT=/data/artifacts \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 WORKDIR /app
 COPY api/requirements.txt api/requirements.txt
 RUN pip install --no-cache-dir -r api/requirements.txt
+# Chromium for render_diagram (architecture / journey / Mermaid pictures), with its system libraries and fonts.
+# Shared path so the unprivileged "app" user can start it. Adds about 300-400 MB to the image.
+RUN python -m playwright install --with-deps chromium \
+    && chmod -R a+rX /ms-playwright \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY api api
 COPY integration integration

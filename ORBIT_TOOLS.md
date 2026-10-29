@@ -180,6 +180,24 @@ Draws a user-journey or process flow as a PNG in INT's proposal style and return
 
 Output: `ok`, `artifact`, `steps_source` (`<name>.steps.txt`, saved for audit), `nodes`, `edges`, `width`, `height`, `step_table` (markdown, paste it under the picture), `next`. On a bad step list `ok` is false and `error` names the line.
 
+Since prompt v1.8 the master draws with `render_diagram` (below); `build_diagram` stays as its fallback and for older prompts.
+
+---
+
+## 16. render_diagram
+Draws a proposal picture through a headless browser (Playwright + Chromium, bundled Mermaid; no internet access from the page) and saves it as a PNG artifact. Needs the API version with `tools/render_diagram.py`, `tools/vendor/mermaid.min.js`, `playwright` in `api/requirements.txt` and the Chromium install step in `api/Dockerfile`; redeploy after pulling. One render at a time per container (about 150–250 MB while it runs).
+
+| Input | Type | Notes |
+|---|---|---|
+| `run_id`* | text | |
+| `out_name`* | text | File name ending `.png`, no folders: `architecture.png`, `journey_<name>.png`, `integration_sequence.png` |
+| `kind`* | text | `architecture`, `journey` or `mermaid` |
+| `spec`* | text (or JSON object) | `architecture`: JSON `{"layers": [{"name": "Users & channels", "items": [{"name": "Employee portal", "detail": "Responsive web", "tag": "INT Recommended"}]}], "integrations": [{"name": "SAP", "detail": "Employee master", "tag": "Existing"}], "integration_note": "REST via API gateway"}`; 2–8 layers, 1–8 items each, tag `Client-Mandated`, `Existing`, `INT Recommended`, `To Be Confirmed` or empty. `journey`: the `build_diagram` step list, second field = role (one swimlane per role, at most 6). `mermaid`: Mermaid source (`sequenceDiagram`, `gantt`, `flowchart`, `stateDiagram`). |
+| `title` | text | Heading above the picture |
+| `subtitle` | text | One line under the heading |
+
+Output: `ok`, `artifact`, `kind`, `spec_source` (`<name>.arch.json` / `.steps.txt` / `.mmd.txt`, saved for audit and for check X21), `renderer` (`browser`, or `fallback` for a journey drawn by `build_diagram` because the browser was unavailable), `width`, `height`, `warnings`, `next`; for a journey also `nodes`, `edges`, `lanes`, `step_table`. Errors: `invalid diagram: ...` names the field or Mermaid line to fix; `renderer unavailable: ...` means the browser could not start (record a defect, continue without the picture). Set `RENDER_DIAGRAM_DISABLE=1` on the service to switch the browser off (journeys then fall back automatically).
+
 ---
 
 ## Which agent gets which tool
@@ -190,7 +208,7 @@ Output: `ok`, `artifact`, `steps_source` (`<name>.steps.txt`, saved for audit), 
 | get_artifact | yes | no | **yes** (reads `review_source.md` and `review_input.json` in pages) | **yes** (reads the proposal `.md`, `review_source.md`, `scope_summary.md`, `why_int_facts.md` in pages) |
 | promote_artifact | yes (retries only) | yes | no | no |
 | calc_estimate | yes | yes (self-check loop) | no | no |
-| prepare_review, build_workbook, build_docx, build_diagram, check_consistency, get_module, create_download_link, hash_text | yes | no | no | no |
+| prepare_review, build_workbook, build_docx, build_diagram, render_diagram, check_consistency, get_module, create_download_link, hash_text | yes | no | no | no |
 | ensemble_select | yes (only for ensemble 3) | no | no | no |
 
 ## Third sub-agent: proposal-reviewer
@@ -199,7 +217,7 @@ Create a sub-agent named exactly `proposal-reviewer` (the master prompt calls it
 ## Register in this order
 1. `hash_text`, then `get_module` (smoke test)
 2. `save_artifact`, `get_artifact`, `calc_estimate`
-3. `prepare_review`, `build_workbook`, `build_docx`, `build_diagram`, `check_consistency`, `create_download_link`
+3. `prepare_review`, `build_workbook`, `build_docx`, `build_diagram`, `render_diagram`, `check_consistency`, `create_download_link`
 4. `list_artifacts`, `verify_artifacts`, `ensemble_select`
 
 ---
@@ -239,6 +257,7 @@ This form sends **every key on every call** ("model fills" ticked = the model ma
 | `create_download_link` | `run_id` ✔, `name` ✔ |
 | `build_docx` | `run_id` ✔, `source` ✔, `out_name` ✔, `version` = "" ✔ |
 | `build_diagram` | `run_id` ✔, `out_name` ✔, `steps` ✔, `title` = "" ✔, `direction` = "down" ✔ |
+| `render_diagram` | `run_id` ✔, `out_name` ✔, `kind` ✔, `spec` ✔, `title` = "" ✔, `subtitle` = "" ✔ |
 | `promote_artifact` | `run_id` ✔, `source` ✔, `name` ✔ |
 | `ensemble_select` | skip for now: it needs a list (`runs`), and a text-only form cannot send one. Not needed for ensemble 1 or the single-agent edition |
 
@@ -271,4 +290,5 @@ If the agent sees `proposal_hash_text` instead of `hash_text`, the prompts' tool
 | `create_download_link` | Create a time-limited download link for a stored file, usable without an API key. |
 | `promote_artifact` | Copy an existing file to a new name on the server, byte for byte (for example the calculator-checked draft to estimation_pass2.json). Never re-send a large JSON to create the final file. |
 | `build_diagram` | Draw a user-journey or process flow as a PNG from a step list (one step per line: id, Title, Description, next ids with optional :label). Returns a step table to place under the picture. Call before writing the proposal text. |
+| `render_diagram` | Draw a proposal picture as a PNG: kind `architecture` (JSON layers and integrations, Section 11), `journey` (step list as role swimlanes, Section 9; returns the step table) or `mermaid` (Mermaid source, e.g. the Section 12 integration sequence). Call before writing the proposal text. |
 | `build_docx` | Convert the client proposal markdown (Proposal_*.md) into a Word .docx in INT's proposal style. Call after the proposal text is final and the consistency checks have run. |

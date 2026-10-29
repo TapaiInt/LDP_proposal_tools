@@ -278,21 +278,42 @@ def main():
         if "proposed" not in rbac.lower():
             chk("X19b", False, "the RBAC matrix is not labelled Proposed", "warn")
 
-    pics = list(re.finditer(r"^!\[(.*?)\]\(([^()\s]+)\)\s*$", prop, re.M))
-    if not pics:
-        chk("X20", False, "no user-journey diagram in the proposal", "warn")
+    pic_re = re.compile(r"^!\[(.*?)\]\(([^()\s]+)\)\s*$", re.M)
+    pics = list(pic_re.finditer(prop))
+    journey_pics = list(pic_re.finditer(secs.get(9, "")))
+    if not journey_pics:
+        chk("X20", False, "no user-journey diagram in Section 9", "warn")
+    bad = []
+    for m in pics:
+        cap, fn = m.group(1).strip(), m.group(2)
+        if not os.path.exists(os.path.join(d, os.path.basename(fn))):
+            bad.append(f"{fn}: file not found")
+        elif not cap:
+            bad.append(f"{fn}: no caption")
+    for m in journey_pics:                              # a journey picture always has its step table (the text version)
+        after = [l for l in secs[9][m.end():].split("\n") if l.strip()][:4]
+        if not any(l.strip().startswith("|") and "step" in l.lower() for l in after):
+            bad.append(f"{m.group(2)}: no step table under it")
+    if pics:
+        chk("X20", not bad, "; ".join(bad) if bad else f"{len(pics)} diagram(s) with caption; {len(journey_pics)} journey(s) with step table", "fail")
+
+    # X21 Section 11 carries the architecture picture; every component in its spec is described somewhere in Sections 7-13
+    arch_pics = list(pic_re.finditer(secs.get(11, "")))
+    if not arch_pics:
+        chk("X21", False, "no architecture diagram in Section 11", "warn")
     else:
-        bad = []
-        for m in pics:
-            cap, fn = m.group(1).strip(), m.group(2)
-            after = [l for l in prop[m.end():].split("\n") if l.strip()][:4]
-            if not os.path.exists(os.path.join(d, os.path.basename(fn))):
-                bad.append(f"{fn}: file not found")
-            elif not cap:
-                bad.append(f"{fn}: no caption")
-            elif not any(l.strip().startswith("|") and "step" in l.lower() for l in after):
-                bad.append(f"{fn}: no step table under it")
-        chk("X20", not bad, "; ".join(bad) if bad else f"{len(pics)} diagram(s) with caption and step table", "fail")
+        body = "\n".join(secs.get(k, "") for k in range(7, 14))
+        lost = []
+        for m in arch_pics:
+            spec_p = os.path.join(d, os.path.basename(m.group(2))[:-4] + ".arch.json")
+            try:
+                spec = json.load(open(spec_p, encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            items = [it for lay in spec.get("layers", []) for it in lay.get("items", [])] + list(spec.get("integrations", []))
+            lost += [n for n in (it.get("name", "") if isinstance(it, dict) else str(it) for it in items) if n and not covered(n, body)]
+        chk("X21", not lost, f"architecture components not described in Sections 7-13: {lost}" if lost
+            else f"{len(arch_pics)} architecture diagram(s); every component is described in the text", "warn")
 
     # X10 case-file hashes
     if case_p:
